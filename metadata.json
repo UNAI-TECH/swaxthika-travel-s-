@@ -1,0 +1,6 @@
+{
+  "name": "Swaxthika Travel",
+  "description": "Sacred Journeys. Divine Experiences. Discover Sthala Puranas, live darshan wait times, panchangam-aware trip planning, seva booking, and pilgrimage journals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

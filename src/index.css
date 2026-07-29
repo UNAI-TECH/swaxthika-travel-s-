@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "EB Garamond", serif;
+  --font-sans: "Inter", sans-serif;
+  --color-primary: #5d100a;
+  --color-accent-gold: #c5a059;
+  --color-surface: #fff8f5;
+  --color-surface-dim: #e1d8d4;
+  --color-surface-container-low: #fbf2ed;
+  --color-on-surface-variant: #534341;
+  --color-success-green: #2d6a4f;
+  --color-warning-orange: #d97706;
+  --color-error-red: #dc2626;
+}
+
+body {
+  background-color: #fff8f5;
+  font-family: 'Inter', sans-serif;
+  color: #333;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: 'EB Garamond', serif;
+}
+
+.hero-gradient {
+  background: linear-gradient(to bottom, rgba(255,248,245,0.7) 0%, rgba(255,248,245,0) 50%, rgba(255,248,245,0.7) 100%);
+}
+
+.card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(93, 16, 10, 0.1);
+}
+
+.ornament-border {
+  border-image: linear-gradient(to right, transparent, #c5a059, transparent) 1;
+  border-width: 0 0 1px 0;
+}
+
