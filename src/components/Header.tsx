@@ -5,6 +5,7 @@ interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenAuth: () => void;
+  onOpenAdmin?: () => void;
   seniorMode: boolean;
   setSeniorMode: (val: boolean) => void;
   selectedLang: string;
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   onOpenAuth,
+  onOpenAdmin,
   seniorMode,
   setSeniorMode,
   selectedLang,
@@ -46,13 +48,15 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-50 bg-[#fff8f5]/95 backdrop-blur-md border-b border-[#c5a059]/20 h-20 flex items-center px-4 sm:px-8 lg:px-16 justify-between shadow-xs">
       {/* Brand Logo & Name */}
       <div
-        className="flex items-center gap-3 cursor-pointer select-none"
+        className="flex items-center gap-3 cursor-pointer select-none group"
         onClick={() => setActiveTab('home')}
       >
-        <div className="w-10 h-10 bg-[#c5a059] rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L14.85 9.15L22 12L14.85 14.85L12 22L9.15 14.85L2 12L9.15 9.15L12 2Z"></path>
-          </svg>
+        <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm border border-[#c5a059]/40 shrink-0 bg-white p-0.5 flex items-center justify-center group-hover:scale-105 transition-transform">
+          <img
+            src="/swaxthika-logo.jpg"
+            alt="Swaxthika Travel Logo"
+            className="w-full h-full object-contain rounded-lg"
+          />
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#5d100a] leading-none tracking-tight font-serif">

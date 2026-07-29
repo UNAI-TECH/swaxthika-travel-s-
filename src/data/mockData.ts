@@ -70,23 +70,6 @@ export const MOCK_TEMPLES: Temple[] = [
     sthalaPuranaShort: 'Vibhishana received the idol from Lord Rama; it became permanently consecrated on the banks of Cauvery.'
   },
   {
-    id: 'rameshwaram',
-    name: 'Ramanathaswamy Temple',
-    deity: 'Lord Shiva (Ramanathaswamy)',
-    location: 'Rameswaram',
-    state: 'Tamil Nadu',
-    image: 'https://images.unsplash.com/photo-1609946782701-7033527b1405?auto=format&fit=crop&w=800&q=80',
-    crowdLevel: 'Moderate',
-    waitTimeMinutes: 75,
-    description: 'One of the 12 Jyotirlingas, home to the longest temple corridor in the world with over 1,200 carved stone pillars and 22 sacred teerthams.',
-    timing: '05:00 AM - 01:00 PM, 03:00 PM - 09:00 PM',
-    specialty: '22 Holy Water Bathing Wells & Spatika Linga Darshan',
-    sevasAvailable: ['Spatika Linga Pooja', '108 Teertham Snanam', 'Rudrabhishekam'],
-    builtInCentury: '12th Century AD',
-    architectureStyle: 'Dravidian Corridor Style',
-    sthalaPuranaShort: 'Lord Rama established and worshipped the Shiva Linga here to absolve sins after defeating Ravana.'
-  },
-  {
     id: 'kanchipuram-kamakshi',
     name: 'Kamakshi Amman Temple',
     deity: 'Goddess Kamakshi',

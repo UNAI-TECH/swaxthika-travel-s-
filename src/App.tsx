@@ -5,6 +5,7 @@ import { PopularTemples } from './components/PopularTemples';
 import { LiveDarshanWidget } from './components/LiveDarshanWidget';
 import { PlanYourYatra } from './components/PlanYourYatra';
 import { FestivalCalendar } from './components/FestivalCalendar';
+import { TamilCalendarSection } from './components/TamilCalendarSection';
 import { SthalaPuranaStories } from './components/SthalaPuranaStories';
 import { CommunityJournals } from './components/CommunityJournals';
 import { StatsBar } from './components/StatsBar';
@@ -18,6 +19,7 @@ import { LiveStatusModal } from './components/LiveStatusModal';
 import { JournalsModal } from './components/JournalsModal';
 import { TempleDetailModal } from './components/TempleDetailModal';
 import { AuthModal } from './components/AuthModal';
+import { AdminDashboard } from './components/AdminDashboard';
 
 // Data Types & Fallbacks
 import { Temple, LiveDarshanStatus, Festival, PuranaStory, Journal, SevaOption, YatraStop } from './types';
@@ -32,12 +34,19 @@ import {
 } from './data/mockData';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined' && (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin'))) {
+      return 'admin';
+    }
+    return 'home';
+  });
   const [seniorMode, setSeniorMode] = useState<boolean>(false);
   const [selectedLang, setSelectedLang] = useState<string>('EN');
 
   // Dynamic Data
-  const [temples, setTemples] = useState<Temple[]>(MOCK_TEMPLES);
+  const [temples, setTemples] = useState<Temple[]>(
+    MOCK_TEMPLES.filter((t) => t.id !== 'rameshwaram' && !t.name.toLowerCase().includes('ramanathaswamy'))
+  );
   const [liveStatuses, setLiveStatuses] = useState<LiveDarshanStatus[]>(MOCK_LIVE_CROWD);
   const [festivals, setFestivals] = useState<Festival[]>(MOCK_FESTIVALS);
   const [puranaStories, setPuranaStories] = useState<PuranaStory[]>(MOCK_PURANA_STORIES);
@@ -63,7 +72,11 @@ export function App() {
   useEffect(() => {
     fetch('/api/temples')
       .then((r) => r.json())
-      .then((d) => d.temples && setTemples(d.temples))
+      .then((d) => {
+        if (d.temples) {
+          setTemples(d.temples.filter((t: Temple) => t.id !== 'rameshwaram' && !t.name.toLowerCase().includes('ramanathaswamy')));
+        }
+      })
       .catch((e) => console.log('Using local temples fallback', e));
 
     fetch('/api/live-crowd')
@@ -91,6 +104,33 @@ export function App() {
       .then((d) => d.journals && setJournals(d.journals))
       .catch((e) => console.log('Using local journals fallback', e));
   }, []);
+
+  // Listen for browser navigation changes (/admin)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname === '/admin') {
+        setActiveTab('admin');
+      } else {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'admin') {
+      if (window.location.pathname !== '/admin') {
+        window.history.pushState({}, '', '/admin');
+      }
+    } else {
+      if (window.location.pathname === '/admin') {
+        window.history.pushState({}, '', '/');
+      }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Search handler from Hero Section
   const handleHeroSearch = (query: string, state: string, festival: string) => {
@@ -133,6 +173,18 @@ export function App() {
     setJournals((prev) => [newJ, ...prev]);
   };
 
+  if (activeTab === 'admin') {
+    return (
+      <AdminDashboard
+        temples={temples}
+        liveStatuses={liveStatuses}
+        festivals={festivals}
+        journals={journals}
+        onExitAdmin={() => handleTabChange('home')}
+      />
+    );
+  }
+
   return (
     <div
       className={`min-h-screen bg-[#fff8f5] text-[#534341] flex flex-col font-sans transition-all ${
@@ -142,8 +194,9 @@ export function App() {
       {/* Top Navigation Header */}
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         onOpenAuth={() => setShowAuthModal(true)}
+        onOpenAdmin={() => handleTabChange('admin')}
         seniorMode={seniorMode}
         setSeniorMode={setSeniorMode}
         selectedLang={selectedLang}
@@ -324,47 +377,53 @@ export function App() {
           </div>
         )}
 
-        {/* Tab 4: Festivals Calendar View */}
+        {/* Tab 4: Festivals & Tamil Calendar View */}
         {activeTab === 'festivals' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
-            <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                Sacred Festival Calendar
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Panchangam-verified divine festivals, Brahmotsavams, and Rath Yatras.
-              </p>
-            </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-10">
+            {/* Tamil Calendar & Panchangam Interactive Section */}
+            <TamilCalendarSection />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {festivals.map((fest) => (
-                <div
-                  key={fest.id}
-                  className="bg-white p-6 rounded-xl card-shadow border border-gray-200 space-y-3"
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="bg-[#fbf2ed] text-[#5d100a] font-bold text-xs px-3 py-1 rounded-md">
-                      {fest.month} {fest.dateNumber}
-                    </span>
-                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                      {fest.status}
-                    </span>
-                  </div>
+            {/* General Festivals Overview */}
+            <div className="space-y-6 pt-4 border-t border-gray-200">
+              <div className="border-b border-gray-200 pb-3">
+                <h3 className="text-2xl font-serif font-bold text-[#5d100a]">
+                  Pan-Indian Sacred Festival Calendar
+                </h3>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Panchangam-verified divine festivals, Brahmotsavams, and Rath Yatras.
+                </p>
+              </div>
 
-                  <h3 className="font-serif font-bold text-lg text-gray-900">
-                    {fest.name}
-                  </h3>
-                  <p className="text-xs text-[#5d100a] font-semibold">
-                    {fest.templeName}
-                  </p>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {fest.description}
-                  </p>
-                  <div className="bg-[#fff8f5] p-2.5 rounded-lg border border-[#c5a059]/20 text-xs font-semibold text-gray-800">
-                    ✨ Auspicious Tithi: {fest.tithi}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {festivals.map((fest) => (
+                  <div
+                    key={fest.id}
+                    className="bg-white p-6 rounded-xl card-shadow border border-gray-200 space-y-3"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="bg-[#fbf2ed] text-[#5d100a] font-bold text-xs px-3 py-1 rounded-md">
+                        {fest.month} {fest.dateNumber}
+                      </span>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                        {fest.status}
+                      </span>
+                    </div>
+
+                    <h3 className="font-serif font-bold text-lg text-gray-900">
+                      {fest.name}
+                    </h3>
+                    <p className="text-xs text-[#5d100a] font-semibold">
+                      {fest.templeName}
+                    </p>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      {fest.description}
+                    </p>
+                    <div className="bg-[#fff8f5] p-2.5 rounded-lg border border-[#c5a059]/20 text-xs font-semibold text-gray-800">
+                      ✨ Auspicious Tithi: {fest.tithi}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -541,7 +600,7 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <AppFooter onNavClick={(tab) => setActiveTab(tab)} />
+      <AppFooter onNavClick={(tab) => handleTabChange(tab)} />
 
       {/* Modals Container */}
       {showAuthModal && (

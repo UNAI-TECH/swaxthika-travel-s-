@@ -35,7 +35,47 @@ function getGeminiClient(): GoogleGenAI | null {
 
 // In-memory store for user-submitted journals and bookings
 let userJournals = [...MOCK_JOURNALS];
-let userBookings: any[] = [];
+let userBookings: any[] = [
+  {
+    bookingId: "SWX-882194",
+    templeName: "Tirupati Balaji Temple",
+    sevaName: "Kalyanotsavam Seva & Special Darshan",
+    devoteeName: "Sundararajan M",
+    phone: "+91 98401 23456",
+    date: "2026-08-05",
+    numberOfDevotees: 2,
+    totalAmount: 1000,
+    specialWishes: "Family wellness and longevity",
+    status: "Confirmed",
+    createdAt: "2026-07-29T10:15:00.000Z"
+  },
+  {
+    bookingId: "SWX-551029",
+    templeName: "Meenakshi Amman Temple",
+    sevaName: "Gold Chariot Pulling & Special Archana",
+    devoteeName: "Lakshmi Narayanan",
+    phone: "+91 94440 98765",
+    date: "2026-08-12",
+    numberOfDevotees: 4,
+    totalAmount: 2000,
+    specialWishes: "Child graduation blessings",
+    status: "Confirmed",
+    createdAt: "2026-07-29T11:45:00.000Z"
+  },
+  {
+    bookingId: "SWX-310492",
+    templeName: "Srirangam Ranganathaswamy Temple",
+    sevaName: "Viswaroopa Seva & Butter Offering",
+    devoteeName: "Kaveri Ammal",
+    phone: "+91 97890 12345",
+    date: "2026-08-01",
+    numberOfDevotees: 1,
+    totalAmount: 250,
+    specialWishes: "Health and peace",
+    status: "Completed",
+    createdAt: "2026-07-28T09:30:00.000Z"
+  }
+];
 
 // ================= API ROUTES =================
 
@@ -44,10 +84,37 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Admin API Routes
+app.get("/api/admin/bookings", (req, res) => {
+  res.json({ bookings: userBookings });
+});
+
+app.post("/api/admin/update-booking-status", (req, res) => {
+  const { bookingId, status } = req.body;
+  const target = userBookings.find((b) => b.bookingId === bookingId);
+  if (target) {
+    target.status = status;
+    return res.json({ success: true, booking: target });
+  }
+  res.status(404).json({ error: "Booking not found" });
+});
+
+app.post("/api/admin/update-crowd", (req, res) => {
+  const { templeId, crowdLevel, waitTimeMinutes } = req.body;
+  const target = MOCK_LIVE_CROWD.find((c) => c.templeId === templeId);
+  if (target) {
+    if (crowdLevel) target.crowdLevel = crowdLevel;
+    if (waitTimeMinutes !== undefined) target.waitTimeMinutes = Number(waitTimeMinutes);
+    target.lastUpdated = "Updated just now by Admin";
+    return res.json({ success: true, liveCrowd: MOCK_LIVE_CROWD });
+  }
+  res.status(404).json({ error: "Temple live status not found" });
+});
+
 // Get Temples with optional filtering
 app.get("/api/temples", (req, res) => {
   const { query, state, festival } = req.query;
-  let results = [...MOCK_TEMPLES];
+  let results = MOCK_TEMPLES.filter((t) => t.id !== "rameshwaram" && !t.name.toLowerCase().includes("ramanathaswamy"));
 
   if (query && typeof query === "string" && query.trim()) {
     const q = query.toLowerCase().trim();

@@ -16,14 +16,20 @@ export const FestivalCalendar: React.FC<FestivalCalendarProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between">
-        <h3 className="text-xl font-serif font-bold text-[#5d100a]">
-          Festival Calendar
-        </h3>
+        <div>
+          <div className="flex items-center gap-1 text-[9px] font-bold text-[#c5a059] uppercase tracking-wider">
+            <Sparkles className="w-3 h-3 text-[#c5a059]" />
+            <span>தமிழ் நாட்காட்டி • Panchangam</span>
+          </div>
+          <h3 className="text-xl font-serif font-bold text-[#5d100a]">
+            Festival Calendar
+          </h3>
+        </div>
         <button
           onClick={onOpenCalendarModal}
           className="text-[#5d100a] text-[10px] font-bold uppercase border-b border-[#5d100a] hover:opacity-80 transition-opacity cursor-pointer flex items-center gap-1"
         >
-          <span>View Calendar</span>
+          <span>தமிழ் நாட்காட்டி</span>
           <ArrowRight className="w-3 h-3" />
         </button>
       </div>

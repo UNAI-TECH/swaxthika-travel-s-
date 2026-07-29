@@ -102,3 +102,17 @@ export interface YatraPlanResponse {
   auspiciousTimings: string;
   travelTips: string[];
 }
+
+export interface BookingRecord {
+  bookingId: string;
+  templeName: string;
+  sevaName: string;
+  devoteeName: string;
+  phone: string;
+  date: string;
+  numberOfDevotees: number;
+  totalAmount: number;
+  specialWishes?: string;
+  status: 'Confirmed' | 'Completed' | 'Cancelled';
+  createdAt?: string;
+}
