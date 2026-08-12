@@ -1,111 +1,110 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
-import { PopularTemples } from './components/PopularTemples';
-import { LiveDarshanWidget } from './components/LiveDarshanWidget';
-import { PlanYourYatra } from './components/PlanYourYatra';
-import { FestivalCalendar } from './components/FestivalCalendar';
-import { TamilCalendarSection } from './components/TamilCalendarSection';
-import { SthalaPuranaStories } from './components/SthalaPuranaStories';
-import { CommunityJournals } from './components/CommunityJournals';
-import { StatsBar } from './components/StatsBar';
-import { AppFooter } from './components/AppFooter';
-
-// Modals
-import { SevaBookingModal } from './components/SevaBookingModal';
-import { TripPlannerModal } from './components/TripPlannerModal';
-import { PuranaModal } from './components/PuranaModal';
-import { LiveStatusModal } from './components/LiveStatusModal';
-import { JournalsModal } from './components/JournalsModal';
-import { TempleDetailModal } from './components/TempleDetailModal';
+import { PackageGrid } from './components/PackageGrid';
+import { PackageCard } from './components/PackageCard';
+import { PackageDetailModal } from './components/PackageDetailModal';
+import { BookingConfirmation } from './components/BookingConfirmation';
 import { AuthModal } from './components/AuthModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { StatsBar } from './components/StatsBar';
+import { AppFooter } from './components/AppFooter';
+import { DevotionalPackage, Booking, UserSession } from './types';
+import { ArrowRight } from 'lucide-react';
 
-// Data Types & Fallbacks
-import { Temple, LiveDarshanStatus, Festival, PuranaStory, Journal, SevaOption, YatraStop } from './types';
-import {
-  MOCK_TEMPLES,
-  MOCK_LIVE_CROWD,
-  MOCK_FESTIVALS,
-  MOCK_PURANA_STORIES,
-  MOCK_JOURNALS,
-  MOCK_SEVAS,
-  MOCK_YATRA_STOPS
-} from './data/mockData';
+// Real-time polling interval (10 seconds)
+const POLL_INTERVAL_MS = 10000;
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin'))) {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
       return 'admin';
     }
     return 'home';
   });
-  const [seniorMode, setSeniorMode] = useState<boolean>(false);
-  const [selectedLang, setSelectedLang] = useState<string>('EN');
 
-  // Dynamic Data
-  const [temples, setTemples] = useState<Temple[]>(
-    MOCK_TEMPLES.filter((t) => t.id !== 'rameshwaram' && !t.name.toLowerCase().includes('ramanathaswamy'))
-  );
-  const [liveStatuses, setLiveStatuses] = useState<LiveDarshanStatus[]>(MOCK_LIVE_CROWD);
-  const [festivals, setFestivals] = useState<Festival[]>(MOCK_FESTIVALS);
-  const [puranaStories, setPuranaStories] = useState<PuranaStory[]>(MOCK_PURANA_STORIES);
-  const [journals, setJournals] = useState<Journal[]>(MOCK_JOURNALS);
-  const [sevas, setSevas] = useState<SevaOption[]>(MOCK_SEVAS);
-
-  // Modals state
+  const [packages, setPackages] = useState<DevotionalPackage[]>([]);
+  const [user, setUser] = useState<UserSession | null>(null);
+  
+  // Modals / Detail states
+  const [selectedPackage, setSelectedPackage] = useState<DevotionalPackage | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [showSevaModal, setShowSevaModal] = useState<boolean>(false);
-  const [sevaTempleTarget, setSevaTempleTarget] = useState<string>('Tirupati Balaji Temple');
+  const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [userBookings, setUserBookings] = useState<Booking[]>([]);
 
-  const [showTripPlannerModal, setShowTripPlannerModal] = useState<boolean>(false);
-  const [showPuranaModal, setShowPuranaModal] = useState<boolean>(false);
-  const [activePuranaStory, setActivePuranaStory] = useState<PuranaStory>(MOCK_PURANA_STORIES[0]);
+  // Search/Filter state in Hero
+  const [heroSearchQuery, setHeroSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const [showLiveStatusModal, setShowLiveStatusModal] = useState<boolean>(false);
-  const [showJournalsModal, setShowJournalsModal] = useState<boolean>(false);
-  const [journalsWriteMode, setJournalsWriteMode] = useState<boolean>(false);
+  // Polling reference
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [selectedTemple, setSelectedTemple] = useState<Temple | null>(null);
-
-  // Fetch initial data from server APIs
+  // Load user session on mount
   useEffect(() => {
-    fetch('/api/temples')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.temples) {
-          setTemples(d.temples.filter((t: Temple) => t.id !== 'rameshwaram' && !t.name.toLowerCase().includes('ramanathaswamy')));
-        }
-      })
-      .catch((e) => console.log('Using local temples fallback', e));
-
-    fetch('/api/live-crowd')
-      .then((r) => r.json())
-      .then((d) => d.liveCrowd && setLiveStatuses(d.liveCrowd))
-      .catch((e) => console.log('Using local live crowd fallback', e));
-
-    fetch('/api/festivals')
-      .then((r) => r.json())
-      .then((d) => d.festivals && setFestivals(d.festivals))
-      .catch((e) => console.log('Using local festivals fallback', e));
-
-    fetch('/api/puranas')
-      .then((r) => r.json())
-      .then((d) => d.puranaStories && setPuranaStories(d.puranaStories))
-      .catch((e) => console.log('Using local purana stories fallback', e));
-
-    fetch('/api/sevas')
-      .then((r) => r.json())
-      .then((d) => d.sevas && setSevas(d.sevas))
-      .catch((e) => console.log('Using local sevas fallback', e));
-
-    fetch('/api/journals')
-      .then((r) => r.json())
-      .then((d) => d.journals && setJournals(d.journals))
-      .catch((e) => console.log('Using local journals fallback', e));
+    const session = localStorage.getItem('swaxthika_user_session');
+    if (session) {
+      try {
+        const parsed = JSON.parse(session);
+        setUser(parsed);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }, []);
 
-  // Listen for browser navigation changes (/admin)
+  // Fetch packages from server
+  const fetchPackages = useCallback(() => {
+    fetch('/api/packages')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.packages) setPackages(d.packages);
+      })
+      .catch((e) => console.log('Package fetch error', e));
+  }, []);
+
+  // Fetch user bookings
+  const fetchUserBookings = useCallback(() => {
+    if (!user || !user.isLoggedIn) return;
+    
+    fetch('/api/admin/bookings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.bookings) {
+          const filtered = d.bookings.filter(
+            (b: Booking) => b.userEmail.toLowerCase() === user.email.toLowerCase()
+          );
+          setUserBookings(filtered);
+        }
+      })
+      .catch((e) => console.error(e));
+  }, [user]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
+
+  useEffect(() => {
+    fetchUserBookings();
+  }, [fetchUserBookings]);
+
+  // Real-time polling: refresh packages and bookings every POLL_INTERVAL_MS
+  useEffect(() => {
+    pollTimerRef.current = setInterval(() => {
+      fetchPackages();
+      if (user && user.isLoggedIn) {
+        fetchUserBookings();
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+      }
+    };
+  }, [fetchPackages, fetchUserBookings, user]);
+
+  // Handle URL change for admin (only accessible via /admin URL)
   useEffect(() => {
     const handlePopState = () => {
       if (window.location.pathname === '/admin') {
@@ -132,469 +131,229 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Search handler from Hero Section
-  const handleHeroSearch = (query: string, state: string, festival: string) => {
-    let filtered = [...MOCK_TEMPLES];
-    if (query && query.trim()) {
-      const q = query.toLowerCase().trim();
-      filtered = filtered.filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.deity.toLowerCase().includes(q) ||
-          t.location.toLowerCase().includes(q)
-      );
-    }
-    if (state && state !== 'All States') {
-      filtered = filtered.filter((t) => t.state === state);
-    }
-    setTemples(filtered);
-    setActiveTab('temples');
+  const handleSignInSuccess = (mockUser: UserSession) => {
+    setUser(mockUser);
+    setShowAuthModal(false);
   };
 
-  const handleOpenSevaModal = (templeName?: string) => {
-    if (templeName) setSevaTempleTarget(templeName);
-    setShowSevaModal(true);
+  const handleSignOut = () => {
+    localStorage.removeItem('swaxthika_user_session');
+    setUser(null);
+    setUserBookings([]);
+    handleTabChange('home');
   };
 
-  const handleOpenPuranaModalForStory = (story: PuranaStory) => {
-    setActivePuranaStory(story);
-    setShowPuranaModal(true);
+  const handleBookingComplete = (booking: Booking) => {
+    setSelectedPackage(null);
+    setConfirmedBooking(booking);
+    // Immediately refresh data after booking
+    fetchPackages();
+    fetchUserBookings();
   };
 
-  const handleOpenPuranaForTemple = (templeName: string) => {
-    const found = puranaStories.find((p) =>
-      p.templeName.toLowerCase().includes(templeName.toLowerCase())
-    );
-    setActivePuranaStory(found || puranaStories[0]);
-    setShowPuranaModal(true);
-  };
+  // Get categories dynamically
+  const categories = ['All', ...Array.from(new Set(packages.map((p) => p.category)))];
 
-  const handleAddJournalEntry = (newJ: Journal) => {
-    setJournals((prev) => [newJ, ...prev]);
-  };
+  // Search filter for packages page
+  const filteredPackages = packages.filter((pkg) => {
+    const matchesSearch =
+      pkg.name.toLowerCase().includes(heroSearchQuery.toLowerCase()) ||
+      pkg.description.toLowerCase().includes(heroSearchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'All' || pkg.category === selectedCategory;
 
+    return matchesSearch && matchesCategory;
+  });
+
+  // Admin Dashboard - only accessible via /admin URL, no button in the UI
   if (activeTab === 'admin') {
-    return (
-      <AdminDashboard
-        temples={temples}
-        liveStatuses={liveStatuses}
-        festivals={festivals}
-        journals={journals}
-        onExitAdmin={() => handleTabChange('home')}
-      />
-    );
+    return <AdminDashboard onExitAdmin={() => handleTabChange('home')} />;
   }
 
   return (
-    <div
-      className={`min-h-screen bg-[#fff8f5] text-[#534341] flex flex-col font-sans transition-all ${
-        seniorMode ? 'text-lg leading-relaxed font-semibold' : ''
-      }`}
-    >
-      {/* Top Navigation Header */}
+    <div className="min-h-screen bg-[#fff8f5] text-[#534341] flex flex-col font-sans transition-all">
+      {/* Header — no admin button, admin only via URL */}
       <Header
         activeTab={activeTab}
         setActiveTab={handleTabChange}
+        user={user}
         onOpenAuth={() => setShowAuthModal(true)}
-        onOpenAdmin={() => handleTabChange('admin')}
-        seniorMode={seniorMode}
-        setSeniorMode={setSeniorMode}
-        selectedLang={selectedLang}
-        setSelectedLang={setSelectedLang}
+        onSignOut={handleSignOut}
       />
 
-      {/* Main Body Layout */}
       <main className="flex-1">
         {activeTab === 'home' && (
-          <>
+          <div className="space-y-8 sm:space-y-12">
             {/* Hero Section */}
             <HeroSection
-              onSearch={handleHeroSearch}
-              onQuickLinkClick={(target) => {
-                if (target === 'purana') setShowPuranaModal(true);
-                else if (target === 'seva') handleOpenSevaModal();
-                else if (target === 'planner') setShowTripPlannerModal(true);
-                else if (target === 'temples') setShowLiveStatusModal(true);
-                else setActiveTab(target);
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSearch={(query) => {
+                setHeroSearchQuery(query);
+                handleTabChange('packages');
               }}
-              onToggleSeniorMode={() => setSeniorMode(!seniorMode)}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                handleTabChange('packages');
+              }}
             />
 
-            {/* Main Content Sections */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-12 space-y-12">
-              {/* Row 1: Popular Temples (3 cols) + Live Darshan Load Widget (1 col) */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-stretch">
-                <div className="lg:col-span-3">
-                  <PopularTemples
-                    temples={temples}
-                    onSelectTemple={(t) => setSelectedTemple(t)}
-                    onViewAllTemples={() => setActiveTab('temples')}
-                    onBookSeva={(tName) => handleOpenSevaModal(tName)}
-                  />
+            {/* Featured Packages Row */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 border-b border-gray-200 pb-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#5d100a]">
+                    Featured Devotional Packages
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                    Select a curated holy tour plan scheduled for departure
+                  </p>
                 </div>
-
-                <div className="lg:col-span-1">
-                  <LiveDarshanWidget
-                    liveStatuses={liveStatuses}
-                    onOpenFullLiveModal={() => setShowLiveStatusModal(true)}
-                  />
-                </div>
+                <button
+                  onClick={() => {
+                    setSelectedCategory('All');
+                    setHeroSearchQuery('');
+                    handleTabChange('packages');
+                  }}
+                  className="text-xs font-bold text-[#5d100a] hover:underline flex items-center gap-1 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-[#c5a059]/30 self-start sm:self-auto"
+                >
+                  <span>Explore All Packages</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#c5a059]" />
+                </button>
               </div>
 
-              {/* Row 2: Plan Your Yatra Section */}
-              <PlanYourYatra
-                stops={MOCK_YATRA_STOPS}
-                onOpenTripPlannerModal={() => setShowTripPlannerModal(true)}
-                onSelectStop={(stop) => {
-                  const t = temples.find((x) => x.name.includes(stop.name)) || temples[0];
-                  setSelectedTemple(t);
-                }}
-              />
-
-              {/* Row 3: Festival Calendar (1 col) + Sthala Purana Stories (1 col) + Community Journals (1 col) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-                <FestivalCalendar
-                  festivals={festivals}
-                  onOpenCalendarModal={() => setActiveTab('festivals')}
-                  onSelectFestival={() => setActiveTab('festivals')}
-                />
-
-                <SthalaPuranaStories
-                  story={puranaStories[0] || MOCK_PURANA_STORIES[0]}
-                  onOpenPuranaModal={(s) => handleOpenPuranaModalForStory(s)}
-                  onExploreStories={() => setShowPuranaModal(true)}
-                />
-
-                <CommunityJournals
-                  journals={journals}
-                  onOpenJournalsModal={() => {
-                    setJournalsWriteMode(false);
-                    setShowJournalsModal(true);
-                  }}
-                  onWriteJournalModal={() => {
-                    setJournalsWriteMode(true);
-                    setShowJournalsModal(true);
-                  }}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {packages.slice(0, 3).map((pkg) => (
+                  <div key={pkg.id}>
+                    <PackageCard pkg={pkg} onViewDetails={(p) => setSelectedPackage(p)} />
+                  </div>
+                ))}
               </div>
+
+              {packages.length === 0 && (
+                <div className="text-center py-12 bg-white rounded-2xl border border-gray-200/60 shadow-xs space-y-3">
+                  <p className="text-gray-400 font-serif italic text-base sm:text-lg">Loading sacred packages from cloud...</p>
+                  <p className="text-xs text-gray-500">If this persists, check that your Supabase connection is configured in the .env file.</p>
+                </div>
+              )}
             </div>
 
             {/* Stats Bar */}
             <StatsBar />
-          </>
-        )}
-
-        {/* Tab 2: Temples Directory View */}
-        {activeTab === 'temples' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
-            <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                Sacred Temple Directory
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Explore thousands of ancient shrines, live queue statuses, darshan timings, and Sthala Puranas.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {temples.map((temple) => (
-                <div
-                  key={temple.id}
-                  onClick={() => setSelectedTemple(temple)}
-                  className="bg-white rounded-xl overflow-hidden card-shadow border border-gray-200 hover:border-[#c5a059] transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="h-48 overflow-hidden relative">
-                      <img
-                        src={temple.image}
-                        alt={temple.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <span className="absolute top-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                        ~{temple.waitTimeMinutes}m wait
-                      </span>
-                    </div>
-
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-serif font-bold text-base text-gray-900 group-hover:text-[#5d100a] transition-colors">
-                        {temple.name}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {temple.location}, {temple.state}
-                      </p>
-                      <p className="text-xs text-gray-700 line-clamp-2 italic font-serif">
-                        "{temple.specialty}"
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 pt-0 flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenSevaModal(temple.name);
-                      }}
-                      className="flex-1 bg-[#5d100a] text-white py-2 rounded text-xs font-bold hover:bg-opacity-90"
-                    >
-                      Book Seva
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenPuranaForTemple(temple.name);
-                      }}
-                      className="flex-1 bg-white border border-[#c5a059] text-[#5d100a] py-2 rounded text-xs font-bold hover:bg-[#fff8f5]"
-                    >
-                      Sthala Purana
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
-        {/* Tab 3: Trip Planner View */}
-        {activeTab === 'planner' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
+        {/* TAB: PACKAGES LISTING */}
+        {activeTab === 'packages' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-6 sm:py-10 space-y-6 sm:space-y-8">
             <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                AI Panchangam Yatra Trip Planner
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#5d100a]">
+                Sacred Yatra Packages
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Customize auspicious pilgrimage routes based on family senior needs, crowd levels, and tithis.
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Browse our scheduled pilgrimage packages, select departure dates and book seats.
               </p>
             </div>
 
-            <PlanYourYatra
-              stops={MOCK_YATRA_STOPS}
-              onOpenTripPlannerModal={() => setShowTripPlannerModal(true)}
-              onSelectStop={(stop) => {
-                const t = temples.find((x) => x.name.includes(stop.name)) || temples[0];
-                setSelectedTemple(t);
-              }}
+            <PackageGrid
+              packages={packages}
+              onViewDetails={(p) => setSelectedPackage(p)}
             />
           </div>
         )}
 
-        {/* Tab 4: Festivals & Tamil Calendar View */}
-        {activeTab === 'festivals' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-10">
-            {/* Tamil Calendar & Panchangam Interactive Section */}
-            <TamilCalendarSection />
+        {/* TAB: MY BOOKINGS / Passes */}
+        {activeTab === 'my-bookings' && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
+            <div className="border-b border-gray-200 pb-4">
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#5d100a]">
+                My Devotional Boarding Passes
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                Present these digital tickets at the boarding point for verification before yatra onboarding.
+              </p>
+            </div>
 
-            {/* General Festivals Overview */}
-            <div className="space-y-6 pt-4 border-t border-gray-200">
-              <div className="border-b border-gray-200 pb-3">
-                <h3 className="text-2xl font-serif font-bold text-[#5d100a]">
-                  Pan-Indian Sacred Festival Calendar
-                </h3>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Panchangam-verified divine festivals, Brahmotsavams, and Rath Yatras.
-                </p>
+            {userBookings.length === 0 ? (
+              <div className="text-center py-12 sm:py-16 bg-white rounded-2xl border border-gray-200/60 shadow-xs space-y-4">
+                <p className="text-gray-400 font-serif italic text-base sm:text-lg">No tour packages booked yet.</p>
+                <button
+                  onClick={() => handleTabChange('packages')}
+                  className="bg-[#5d100a] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-opacity-95 cursor-pointer shadow-xs border border-[#c5a059]/30"
+                >
+                  Explore Holy Tours
+                </button>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {festivals.map((fest) => (
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+                {userBookings.map((b) => (
                   <div
-                    key={fest.id}
-                    className="bg-white p-6 rounded-xl card-shadow border border-gray-200 space-y-3"
+                    key={b.bookingId}
+                    className="bg-white border border-[#c5a059]/30 rounded-2xl overflow-hidden p-4 sm:p-5 shadow-2xs relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6"
                   >
-                    <div className="flex justify-between items-start">
-                      <span className="bg-[#fbf2ed] text-[#5d100a] font-bold text-xs px-3 py-1 rounded-md">
-                        {fest.month} {fest.dateNumber}
-                      </span>
-                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                        {fest.status}
-                      </span>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#5d100a] to-[#c5a059]"></div>
+                    
+                    <div className="flex-1 space-y-3 sm:space-y-3.5 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="bg-[#5d100a] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase">
+                          {b.bookingId}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${
+                            b.status === 'Confirmed'
+                              ? 'bg-amber-50 text-amber-800 border-amber-300/40'
+                              : b.status === 'Checked-In'
+                              ? 'bg-purple-50 text-purple-800 border-purple-300/40'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-300/40'
+                          }`}
+                        >
+                          {b.status}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-serif font-bold text-gray-900 leading-snug">{b.packageName}</h3>
+
+                      <div className="grid grid-cols-2 gap-y-2 gap-x-3 sm:gap-x-4 text-xs">
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-bold">Departure Date</span>
+                          <span className="font-semibold text-gray-800">{b.tourDate}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-bold">Seats</span>
+                          <span className="font-semibold text-gray-800">{b.numberOfSeats} Devotee(s)</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-bold">Devotee Name</span>
+                          <span className="font-semibold text-gray-800">{b.userName}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-bold">Unique Code</span>
+                          <span className="font-mono font-bold text-[#5d100a] bg-amber-50 px-1.5 rounded">{b.uniqueCode}</span>
+                        </div>
+                      </div>
+                      {b.selectedAddons && b.selectedAddons.length > 0 && (
+                        <div className="pt-2.5 border-t border-gray-100 mt-2.5 w-full">
+                          <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider">Devotional Add-ons</span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {b.selectedAddons.map((addon) => (
+                              <span key={addon.id} className="bg-amber-50 text-amber-850 border border-amber-200/60 text-[9px] px-2 py-0.5 rounded font-bold">
+                                {addon.name} (+₹{addon.price})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <h3 className="font-serif font-bold text-lg text-gray-900">
-                      {fest.name}
-                    </h3>
-                    <p className="text-xs text-[#5d100a] font-semibold">
-                      {fest.templeName}
-                    </p>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      {fest.description}
-                    </p>
-                    <div className="bg-[#fff8f5] p-2.5 rounded-lg border border-[#c5a059]/20 text-xs font-semibold text-gray-800">
-                      ✨ Auspicious Tithi: {fest.tithi}
+                    {/* QR code verification box */}
+                    <div className="shrink-0 flex flex-col items-center bg-[#fffdfa] border border-[#c5a059]/20 p-2.5 rounded-xl shadow-3xs text-center w-full md:w-36">
+                      <img src={b.qrCodeUrl} alt="Boarding QR" className="w-20 h-20 mx-auto" />
+                      <span className="text-[8px] font-bold text-gray-500 mt-1 uppercase tracking-wider">Onboarding Pass</span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 5: Seva Booking View */}
-        {activeTab === 'seva' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
-            <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                Official Seva & Archanai Booking
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Book fast-track e-passes for Special Entry Darshan, Abhishekam, and Sahasranama Archana.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sevas.map((seva) => (
-                <div
-                  key={seva.id}
-                  className="bg-white p-6 rounded-xl card-shadow border border-gray-200 space-y-4 flex flex-col justify-between"
-                >
-                  <div>
-                    <span className="bg-[#5d100a] text-white text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">
-                      {seva.templeName}
-                    </span>
-                    <h3 className="text-lg font-bold font-serif text-gray-900 mt-2">
-                      {seva.sevaName}
-                    </h3>
-                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                      {seva.description}
-                    </p>
-                    <p className="text-xs text-gray-500 font-semibold mt-2">
-                      🕒 Timing: {seva.timing}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-gray-500 uppercase font-bold block">Dakshina</span>
-                      <span className="text-lg font-bold text-[#5d100a]">Rs. {seva.price}</span>
-                    </div>
-                    <button
-                      onClick={() => handleOpenSevaModal(seva.templeName)}
-                      className="bg-[#5d100a] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 cursor-pointer"
-                    >
-                      Book E-Pass
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 6: Pilgrim Journals View */}
-        {activeTab === 'journals' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
-            <div className="border-b border-gray-200 pb-4 flex justify-between items-end">
-              <div>
-                <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                  Community Yatra Journals & Pilgrim Notes
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Read honest pilgrim tips, senior citizen accessibility reviews, and spiritual moments.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setJournalsWriteMode(true);
-                  setShowJournalsModal(true);
-                }}
-                className="bg-[#5d100a] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-opacity-90 cursor-pointer"
-              >
-                Write a Note
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {journals.map((journal) => (
-                <div
-                  key={journal.id}
-                  className="bg-white p-6 rounded-xl card-shadow border border-gray-200 space-y-3"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={journal.authorAvatar}
-                        alt={journal.authorName}
-                        className="w-10 h-10 rounded-full object-cover border border-[#c5a059]"
-                      />
-                      <div>
-                        <h4 className="font-bold text-sm text-gray-900">
-                          {journal.authorName}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          Visited {journal.templeVisited}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-[#c5a059]">
-                      ★ {journal.rating}/5
-                    </span>
-                  </div>
-
-                  <h3 className="font-serif font-bold text-base text-[#5d100a]">
-                    {journal.title}
-                  </h3>
-                  <p className="text-xs text-gray-700 leading-relaxed">
-                    {journal.content}
-                  </p>
-                  {journal.tipsForPilgrims && (
-                    <div className="bg-[#fff8f5] p-3 rounded-lg border border-[#c5a059]/30 text-xs text-gray-800">
-                      <strong>💡 Pilgrim Tip: </strong>
-                      {journal.tipsForPilgrims}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 7: Sthala Purana Library View */}
-        {activeTab === 'purana' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-10 space-y-8">
-            <div className="border-b border-gray-200 pb-4">
-              <h2 className="text-3xl font-serif font-bold text-[#5d100a]">
-                Sacred Sthala Purana Library
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Authentic Puranic legends, origin stories, and spiritual secrets of ancient shrines.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {puranaStories.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => handleOpenPuranaModalForStory(s)}
-                  className="bg-white rounded-xl overflow-hidden card-shadow border border-gray-200 hover:border-[#c5a059] transition-all cursor-pointer group"
-                >
-                  <div className="h-48 overflow-hidden relative">
-                    <img
-                      src={s.image}
-                      alt={s.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent p-4 flex items-end">
-                      <p className="text-white text-xs font-serif italic">
-                        "{s.significance}"
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-5 space-y-2">
-                    <span className="text-[10px] text-[#c5a059] font-bold uppercase tracking-wider">
-                      {s.templeName}
-                    </span>
-                    <h3 className="font-serif font-bold text-lg text-[#5d100a]">
-                      {s.title}
-                    </h3>
-                    <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed font-serif">
-                      {s.summary}
-                    </p>
-                    <button className="text-xs font-bold text-[#5d100a] group-hover:underline pt-2 block">
-                      Read Full Story & Audio Narration →
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         )}
       </main>
@@ -602,58 +361,31 @@ export function App() {
       {/* Footer */}
       <AppFooter onNavClick={(tab) => handleTabChange(tab)} />
 
-      {/* Modals Container */}
+      {/* MODALS */}
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} />
-      )}
-
-      {showSevaModal && (
-        <SevaBookingModal
-          sevas={sevas}
-          preselectedTempleName={sevaTempleTarget}
-          onClose={() => setShowSevaModal(false)}
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSignInSuccess={handleSignInSuccess}
         />
       )}
 
-      {showTripPlannerModal && (
-        <TripPlannerModal
-          initialStops={MOCK_YATRA_STOPS}
-          onClose={() => setShowTripPlannerModal(false)}
+      {selectedPackage && (
+        <PackageDetailModal
+          pkg={selectedPackage}
+          user={user}
+          onClose={() => setSelectedPackage(null)}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onBookingComplete={handleBookingComplete}
         />
       )}
 
-      {showPuranaModal && (
-        <PuranaModal
-          story={activePuranaStory}
-          allStories={puranaStories}
-          onSelectStory={(s) => setActivePuranaStory(s)}
-          onClose={() => setShowPuranaModal(false)}
-        />
-      )}
-
-      {showLiveStatusModal && (
-        <LiveStatusModal
-          statuses={liveStatuses}
-          onBookSevaForTemple={(tName) => handleOpenSevaModal(tName)}
-          onClose={() => setShowLiveStatusModal(false)}
-        />
-      )}
-
-      {showJournalsModal && (
-        <JournalsModal
-          journals={journals}
-          onAddJournal={handleAddJournalEntry}
-          onClose={() => setShowJournalsModal(false)}
-          startInWriteMode={journalsWriteMode}
-        />
-      )}
-
-      {selectedTemple && (
-        <TempleDetailModal
-          temple={selectedTemple}
-          onBookSeva={(tName) => handleOpenSevaModal(tName)}
-          onReadPurana={(tName) => handleOpenPuranaForTemple(tName)}
-          onClose={() => setSelectedTemple(null)}
+      {confirmedBooking && (
+        <BookingConfirmation
+          booking={confirmedBooking}
+          onClose={() => {
+            setConfirmedBooking(null);
+            handleTabChange('my-bookings');
+          }}
         />
       )}
     </div>

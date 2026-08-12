@@ -19,13 +19,13 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
               Download the Swaxthika App
             </h4>
             <p className="text-white/70 text-xs italic">
-              Your pilgrimage companion in your pocket with offline Sthala Puranas & live darshan notifications.
+              Your pilgrimage companion in your pocket. Sync your boarding passes, get QR codes, and receive real-time yatra notifications.
             </p>
           </div>
           <div className="flex gap-4 shrink-0">
             <a
               href="#"
-              onClick={(e) => { e.preventDefault(); alert("App Download link clicked! Swaxthika mobile app will be available on Google Play."); }}
+              onClick={(e) => { e.preventDefault(); alert("Swaxthika mobile app will be available on Google Play soon."); }}
               className="block h-10 hover:opacity-90 transition-opacity"
             >
               <img
@@ -36,7 +36,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
             </a>
             <a
               href="#"
-              onClick={(e) => { e.preventDefault(); alert("App Download link clicked! Swaxthika mobile app will be available on App Store."); }}
+              onClick={(e) => { e.preventDefault(); alert("Swaxthika mobile app will be available on App Store soon."); }}
               className="block h-10 hover:opacity-90 transition-opacity"
             >
               <img
@@ -56,6 +56,9 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 src="/swaxthika-logo.jpg"
                 alt="Swaxthika Travel Logo"
                 className="w-full h-full object-contain rounded-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=100&q=80';
+                }}
               />
             </div>
             <div>
@@ -77,24 +80,8 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
               <span>About Us</span>
             </button>
 
-            <button onClick={() => onNavClick('temples')} className="text-white/80 hover:text-white text-xs cursor-pointer">
-              Temple Directory
-            </button>
-
-            <button onClick={() => onNavClick('planner')} className="text-white/80 hover:text-white text-xs cursor-pointer">
-              Yatra Planner
-            </button>
-
-            <button onClick={() => onNavClick('festivals')} className="text-white/80 hover:text-white text-xs cursor-pointer">
-              Festivals
-            </button>
-
-            <button onClick={() => onNavClick('seva')} className="text-white/80 hover:text-white text-xs cursor-pointer">
-              Seva & Archanai
-            </button>
-
-            <button onClick={() => onNavClick('journals')} className="text-white/80 hover:text-white text-xs cursor-pointer">
-              Pilgrim Journals
+            <button onClick={() => onNavClick('packages')} className="text-white/80 hover:text-white text-xs cursor-pointer">
+              Devotional Packages
             </button>
 
             <button
@@ -116,7 +103,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
             Where there is Dharma, there is Victory.
           </p>
           <p className="text-white/30 text-[10px] pt-4">
-            © 2026 Swaxthika Travel. All Rights Reserved. Devotional & Pilgrimage Services.
+            © 2026 Swaxthika Travel. All Rights Reserved. Devotional Tour & Pilgrimage Services.
           </p>
         </div>
       </div>
@@ -132,7 +119,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-xl text-[#5d100a]">About Swaxthika Travel</h3>
-                  <p className="text-xs text-gray-500">எங்களைப் பற்றி • Sacred Journeys & Divine Experiences</p>
+                  <p className="text-xs text-gray-500">Sacred Journeys & Divine Experiences</p>
                 </div>
               </div>
               <button
@@ -150,7 +137,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                   <span>Our Sacred Mission</span>
                 </h4>
                 <p>
-                  Swaxthika Travel was founded with a deep spiritual commitment to connect devotees and pilgrims across Tamil Nadu, South India, and the world with the rich heritage of sacred shrines, authentic Sthala Puranas, auspicious Tamil Panchangams, and seamless online Seva reservations.
+                  Swaxthika Travel is dedicated to making sacred pilgrimages convenient, comfortable, and memorable. We specialize in group-oriented devotional tour packages led by spiritual coordinators, providing comprehensive services including VIP darshans, AC accommodation, and pure vegetarian meals.
                 </p>
               </div>
 
@@ -158,32 +145,22 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 <div className="bg-white border border-gray-200 p-3.5 rounded-xl space-y-1">
                   <h5 className="font-serif font-bold text-xs text-[#5d100a] flex items-center gap-1">
                     <Building2 className="w-3.5 h-3.5 text-[#c5a059]" />
-                    <span>Real-Time Darshan Tracking</span>
+                    <span>Curated Tour Routes</span>
                   </h5>
                   <p className="text-[11px] text-gray-600">
-                    Live crowd status and queue wait time estimates for Tirupati, Meenakshi Amman, Sabarimala, and Srirangam.
+                    We offer package tours to iconic circuits such as Kashi-Prayag-Gaya, Chardham Yatra, and Arupadai Veedu Murugan temples.
                   </p>
                 </div>
 
                 <div className="bg-white border border-gray-200 p-3.5 rounded-xl space-y-1">
                   <h5 className="font-serif font-bold text-xs text-[#5d100a] flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-[#c5a059]" />
-                    <span>Authentic Tamil Calendar</span>
+                    <span>Admin Managed Dates</span>
                   </h5>
                   <p className="text-[11px] text-gray-600">
-                    Traditional Tamil month uthsavams (சித்திரை, ஆடி, கார்த்திகை, தை), Nalla Neram, and auspicious tithis.
+                    All departure dates and seat capacities are dynamically managed from the admin dashboard, reflecting immediately to our pilgrims.
                   </p>
                 </div>
-              </div>
-
-              <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-xl space-y-1">
-                <h5 className="font-serif font-bold text-xs text-amber-900 flex items-center gap-1">
-                  <HeartHandshake className="w-4 h-4 text-[#c5a059]" />
-                  <span>Senior Citizen Friendly Yatra</span>
-                </h5>
-                <p className="text-[11px] text-amber-800">
-                  Dedicated Senior Mode providing high-contrast typography, wheelchair access guides, and simplified queue passes for elderly devotees.
-                </p>
               </div>
             </div>
 
@@ -192,7 +169,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 onClick={() => setShowAboutModal(false)}
                 className="bg-[#5d100a] text-white font-bold text-xs px-5 py-2 rounded-xl hover:bg-opacity-90 transition-all cursor-pointer shadow-md"
               >
-                Close Story
+                Close
               </button>
             </div>
           </div>
@@ -210,7 +187,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-xl text-[#5d100a]">Terms & Conditions</h3>
-                  <p className="text-xs text-gray-500">சேவை விதிகள் மற்றும் நிபந்தனைகள் • Swaxthika Travel Guidelines</p>
+                  <p className="text-xs text-gray-500">Swaxthika Travel Guidelines</p>
                 </div>
               </div>
               <button
@@ -225,40 +202,30 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
               <div className="space-y-1.5">
                 <h4 className="font-bold text-xs text-[#5d100a] flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#c5a059]" />
-                  <span>1. Seva Booking & Devotee Registration</span>
+                  <span>1. Devotional Package Bookings</span>
                 </h4>
                 <p className="text-[11px] text-gray-600">
-                  All online Archana, Abhishekams, and Special Darshan bookings made through Swaxthika Travel are registered with respective temple trusts. Devotees receive a digital confirmation pass with a unique Booking ID and QR code.
+                  Bookings are strictly seat-based. Devotees receive a digital boarding pass with a unique 6-character code and a verification QR code.
                 </p>
               </div>
 
               <div className="space-y-1.5 border-t border-gray-100 pt-3">
                 <h4 className="font-bold text-xs text-[#5d100a] flex items-center gap-1">
                   <ScrollText className="w-3.5 h-3.5 text-[#c5a059]" />
-                  <span>2. Live Crowd Status & Wait Time Accuracy</span>
+                  <span>2. Onboarding QR Verification</span>
                 </h4>
                 <p className="text-[11px] text-gray-600">
-                  Queue wait times and crowd levels are updated continuously via real-time temple monitoring. However, actual wait times may fluctuate during unannounced VIP visits or sudden festival rush.
+                  Devotees must present their digital boarding pass (QR code or 6-character code) to the tour coordinator at the boarding point. Verified boarding passes will be checked-in on the admin dashboard.
                 </p>
               </div>
 
               <div className="space-y-1.5 border-t border-gray-100 pt-3">
                 <h4 className="font-bold text-xs text-[#5d100a] flex items-center gap-1">
                   <Building2 className="w-3.5 h-3.5 text-[#c5a059]" />
-                  <span>3. Traditional Temple Dress Code</span>
+                  <span>3. Cancellation and Refund</span>
                 </h4>
                 <p className="text-[11px] text-gray-600">
-                  Devotees are required to adhere strictly to the traditional attire mandated by temple trusts (e.g. Dhoti/Veshti for men, Saree/Salwar for women). Western wear or footwear is prohibited inside the inner sanctums.
-                </p>
-              </div>
-
-              <div className="space-y-1.5 border-t border-gray-100 pt-3">
-                <h4 className="font-bold text-xs text-[#5d100a] flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5 text-[#c5a059]" />
-                  <span>4. Cancellation & Rescheduling Policy</span>
-                </h4>
-                <p className="text-[11px] text-gray-600">
-                  Seva booking cancellations submitted at least 48 hours prior to the scheduled date are eligible for full refund or date rescheduling.
+                  Cancellation is allowed up to 72 hours before the tour date. Refund processes will be handled manually by Swaxthika administrators.
                 </p>
               </div>
             </div>
@@ -268,7 +235,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
                 onClick={() => setShowTermsModal(false)}
                 className="bg-[#5d100a] text-white font-bold text-xs px-5 py-2 rounded-xl hover:bg-opacity-90 transition-all cursor-pointer shadow-md"
               >
-                I Understand & Agree
+                I Agree
               </button>
             </div>
           </div>

@@ -1,118 +1,64 @@
-export type CrowdLevel = 'Low' | 'Moderate' | 'High';
-
-export interface Temple {
-  id: string;
-  name: string;
-  deity: string;
-  location: string;
-  state: string;
-  image: string;
-  crowdLevel: CrowdLevel;
-  waitTimeMinutes: number;
-  description: string;
-  timing: string;
-  specialty: string;
-  sevasAvailable: string[];
-  builtInCentury?: string;
-  architectureStyle?: string;
-  sthalaPuranaShort?: string;
-}
-
-export interface LiveDarshanStatus {
-  templeId: string;
-  templeName: string;
-  crowdLevel: CrowdLevel;
-  waitTimeMinutes: number;
-  statusText: string;
-  queueStatusText: string;
-  recommendedTimeSlot: string;
-  lastUpdated: string;
-}
-
-export interface Festival {
-  id: string;
-  name: string;
-  month: string;
-  dateNumber: number;
-  fullDate: string;
-  templeName: string;
-  location: string;
-  status: 'Upcoming' | 'Ongoing' | 'Past';
-  description: string;
-  auspiciousTithi?: string;
-}
-
-export interface PuranaStory {
-  id: string;
-  templeName: string;
+export interface ItineraryStop {
+  day: number;
   title: string;
-  summary: string;
-  fullStory: string;
-  image: string;
-  significance: string;
-  associatedDeity: string;
-}
-
-export interface Journal {
-  id: string;
-  authorName: string;
-  authorAvatar: string;
-  templeVisited: string;
-  dateVisited: string;
-  rating: number;
-  title: string;
-  content: string;
-  tipsForPilgrims: string;
-  images: string[];
-  likesCount: number;
-}
-
-export interface SevaOption {
-  id: string;
-  templeName: string;
-  sevaName: string;
-  price: number;
-  timing: string;
-  prasadamIncluded: boolean;
   description: string;
+  temples: string[];
 }
 
-export interface YatraStop {
-  id: number;
-  name: string;
-  city: string;
-  description: string;
-  recommendedDuration: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-export interface YatraPlanRequest {
-  startingCity: string;
-  durationDays: number;
-  preferredState: string;
-  travelerType: 'family' | 'senior' | 'solo' | 'group';
-  specialRequirements?: string;
-}
-
-export interface YatraPlanResponse {
-  title: string;
-  summary: string;
-  stops: YatraStop[];
-  auspiciousTimings: string;
-  travelTips: string[];
-}
-
-export interface BookingRecord {
-  bookingId: string;
-  templeName: string;
-  sevaName: string;
-  devoteeName: string;
-  phone: string;
+export interface TourDate {
+  id: string;
   date: string;
-  numberOfDevotees: number;
+  totalSeats: number;
+  bookedSeats: number;
+  status: 'available' | 'filling-fast' | 'sold-out';
+}
+
+export interface PackageAddon {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+}
+
+export interface DevotionalPackage {
+  id: string;
+  name: string;
+  description: string;
+  highlights: string[];
+  itinerary: ItineraryStop[];
+  duration: string;
+  pricePerSeat: number;
+  image: string;
+  category: string;
+  inclusions: string[];
+  exclusions: string[];
+  availableDates: TourDate[];
+  isActive: boolean;
+  createdAt: string;
+  addons?: PackageAddon[];
+}
+
+export interface Booking {
+  bookingId: string;
+  uniqueCode: string;
+  packageId: string;
+  packageName: string;
+  tourDateId: string;
+  tourDate: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  numberOfSeats: number;
   totalAmount: number;
-  specialWishes?: string;
-  status: 'Confirmed' | 'Completed' | 'Cancelled';
-  createdAt?: string;
+  status: 'Confirmed' | 'Checked-In' | 'Completed' | 'Cancelled';
+  qrCodeUrl: string;
+  createdAt: string;
+  selectedAddons?: PackageAddon[];
+}
+
+export interface UserSession {
+  name: string;
+  email: string;
+  avatar: string;
+  isLoggedIn: boolean;
 }

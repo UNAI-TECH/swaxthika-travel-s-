@@ -1,9 +1,9 @@
 import React from 'react';
-import { Landmark, BookOpen, Users, Calendar, Star } from 'lucide-react';
+import { Compass, Landmark, Users, CheckCircle2, Star } from 'lucide-react';
 
 export const StatsBar: React.FC = () => {
   return (
-    <section className="bg-[#5d100a] text-white py-12 px-4 sm:px-8 lg:px-16 mt-12 overflow-hidden relative">
+    <section className="bg-[#5d100a] text-white py-12 px-4 sm:px-8 lg:px-16 mt-12 overflow-hidden relative border-t border-b border-[#c5a059]/40">
       {/* Background Subtle Pattern */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <svg
@@ -33,26 +33,26 @@ export const StatsBar: React.FC = () => {
       <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-2 md:grid-cols-5 gap-8 items-center">
         {/* Stat 1 */}
         <div className="flex flex-col items-center text-center">
-          <Landmark className="w-8 h-8 mb-3 text-[#c5a059]" />
-          <p className="text-2xl font-bold font-serif">12,000+</p>
+          <Compass className="w-8 h-8 mb-3 text-[#c5a059]" />
+          <p className="text-2xl font-bold font-serif">50+</p>
           <p className="text-[10px] uppercase font-bold text-[#c5a059] tracking-wider mt-0.5">
-            Temples
+            Devotional Packages
           </p>
         </div>
 
         {/* Stat 2 */}
         <div className="flex flex-col items-center text-center">
-          <BookOpen className="w-8 h-8 mb-3 text-[#c5a059]" />
-          <p className="text-2xl font-bold font-serif">5,000+</p>
+          <Landmark className="w-8 h-8 mb-3 text-[#c5a059]" />
+          <p className="text-2xl font-bold font-serif">120+</p>
           <p className="text-[10px] uppercase font-bold text-[#c5a059] tracking-wider mt-0.5">
-            Sthala Purana Stories
+            Sacred Temples Covered
           </p>
         </div>
 
         {/* Stat 3 */}
         <div className="flex flex-col items-center text-center">
           <Users className="w-8 h-8 mb-3 text-[#c5a059]" />
-          <p className="text-2xl font-bold font-serif">50,000+</p>
+          <p className="text-2xl font-bold font-serif">85,000+</p>
           <p className="text-[10px] uppercase font-bold text-[#c5a059] tracking-wider mt-0.5">
             Happy Pilgrims
           </p>
@@ -60,21 +60,21 @@ export const StatsBar: React.FC = () => {
 
         {/* Stat 4 */}
         <div className="flex flex-col items-center text-center">
-          <Calendar className="w-8 h-8 mb-3 text-[#c5a059]" />
-          <p className="text-2xl font-bold font-serif">500+</p>
+          <CheckCircle2 className="w-8 h-8 mb-3 text-[#c5a059]" />
+          <p className="text-2xl font-bold font-serif">100%</p>
           <p className="text-[10px] uppercase font-bold text-[#c5a059] tracking-wider mt-0.5">
-            Festivals & Events
+            Verified Boarding
           </p>
         </div>
 
         {/* Stat 5 */}
         <div className="flex flex-col items-center text-center col-span-2 md:col-span-1">
-          <div className="flex items-center mb-1 text-[#c5a059]">
-            <Star className="w-6 h-6 fill-current" />
-            <p className="text-2xl font-bold font-serif text-white ml-1">4.8/5</p>
+          <div className="flex items-center mb-1 text-[#c5a059] justify-center">
+            <Star className="w-5 h-5 fill-current" />
+            <p className="text-2xl font-bold font-serif text-white ml-1">4.9/5</p>
           </div>
           <p className="text-[10px] uppercase font-bold text-[#c5a059] tracking-wider">
-            User Rating
+            Pilgrim Rating
           </p>
         </div>
       </div>

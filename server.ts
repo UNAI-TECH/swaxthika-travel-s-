@@ -1,333 +1,582 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
-import {
-  MOCK_TEMPLES,
-  MOCK_LIVE_CROWD,
-  MOCK_FESTIVALS,
-  MOCK_PURANA_STORIES,
-  MOCK_JOURNALS,
-  MOCK_SEVAS,
-  MOCK_YATRA_STOPS
-} from "./src/data/mockData";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import multer from "multer";
+import { DevotionalPackage, Booking, TourDate } from "./src/types";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
 
-// Initialize Gemini API Client lazily/safely
-function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-    return null;
-  }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
-      },
-    },
-  });
+// Initialize Supabase Client
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+
+if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("your-project-id")) {
+  console.warn("====================================================================");
+  console.warn("⚠️  WARNING: Supabase URL/Key is not configured or is a placeholder.");
+  console.warn("Please update your .env file with real credentials for cloud database.");
+  console.warn("====================================================================");
 }
 
-// In-memory store for user-submitted journals and bookings
-let userJournals = [...MOCK_JOURNALS];
-let userBookings: any[] = [
-  {
-    bookingId: "SWX-882194",
-    templeName: "Tirupati Balaji Temple",
-    sevaName: "Kalyanotsavam Seva & Special Darshan",
-    devoteeName: "Sundararajan M",
-    phone: "+91 98401 23456",
-    date: "2026-08-05",
-    numberOfDevotees: 2,
-    totalAmount: 1000,
-    specialWishes: "Family wellness and longevity",
-    status: "Confirmed",
-    createdAt: "2026-07-29T10:15:00.000Z"
-  },
-  {
-    bookingId: "SWX-551029",
-    templeName: "Meenakshi Amman Temple",
-    sevaName: "Gold Chariot Pulling & Special Archana",
-    devoteeName: "Lakshmi Narayanan",
-    phone: "+91 94440 98765",
-    date: "2026-08-12",
-    numberOfDevotees: 4,
-    totalAmount: 2000,
-    specialWishes: "Child graduation blessings",
-    status: "Confirmed",
-    createdAt: "2026-07-29T11:45:00.000Z"
-  },
-  {
-    bookingId: "SWX-310492",
-    templeName: "Srirangam Ranganathaswamy Temple",
-    sevaName: "Viswaroopa Seva & Butter Offering",
-    devoteeName: "Kaveri Ammal",
-    phone: "+91 97890 12345",
-    date: "2026-08-01",
-    numberOfDevotees: 1,
-    totalAmount: 250,
-    specialWishes: "Health and peace",
-    status: "Completed",
-    createdAt: "2026-07-28T09:30:00.000Z"
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Helpers to generate a random 6-character unique code
+function generateUniqueCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-];
+  return code;
+}
 
-// ================= API ROUTES =================
-
-// Healthcheck
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// Admin API Routes
-app.get("/api/admin/bookings", (req, res) => {
-  res.json({ bookings: userBookings });
-});
-
-app.post("/api/admin/update-booking-status", (req, res) => {
-  const { bookingId, status } = req.body;
-  const target = userBookings.find((b) => b.bookingId === bookingId);
-  if (target) {
-    target.status = status;
-    return res.json({ success: true, booking: target });
-  }
-  res.status(404).json({ error: "Booking not found" });
-});
-
-app.post("/api/admin/update-crowd", (req, res) => {
-  const { templeId, crowdLevel, waitTimeMinutes } = req.body;
-  const target = MOCK_LIVE_CROWD.find((c) => c.templeId === templeId);
-  if (target) {
-    if (crowdLevel) target.crowdLevel = crowdLevel;
-    if (waitTimeMinutes !== undefined) target.waitTimeMinutes = Number(waitTimeMinutes);
-    target.lastUpdated = "Updated just now by Admin";
-    return res.json({ success: true, liveCrowd: MOCK_LIVE_CROWD });
-  }
-  res.status(404).json({ error: "Temple live status not found" });
-});
-
-// Get Temples with optional filtering
-app.get("/api/temples", (req, res) => {
-  const { query, state, festival } = req.query;
-  let results = MOCK_TEMPLES.filter((t) => t.id !== "rameshwaram" && !t.name.toLowerCase().includes("ramanathaswamy"));
-
-  if (query && typeof query === "string" && query.trim()) {
-    const q = query.toLowerCase().trim();
-    results = results.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.deity.toLowerCase().includes(q) ||
-        t.location.toLowerCase().includes(q) ||
-        t.specialty.toLowerCase().includes(q)
-    );
-  }
-
-  if (state && typeof state === "string" && state !== "All States") {
-    results = results.filter((t) => t.state === state);
-  }
-
-  res.json({ temples: results });
-});
-
-// Live Crowd Status
-app.get("/api/live-crowd", (req, res) => {
-  res.json({ liveCrowd: MOCK_LIVE_CROWD });
-});
-
-// Festival Calendar
-app.get("/api/festivals", (req, res) => {
-  res.json({ festivals: MOCK_FESTIVALS });
-});
-
-// Sthala Purana Stories
-app.get("/api/puranas", (req, res) => {
-  res.json({ puranaStories: MOCK_PURANA_STORIES });
-});
-
-// Seva Options
-app.get("/api/sevas", (req, res) => {
-  res.json({ sevas: MOCK_SEVAS });
-});
-
-// Book a Seva / Archana
-app.post("/api/book-seva", (req, res) => {
-  const { templeName, sevaName, devoteeName, phone, date, numberOfDevotees, totalAmount, specialWishes } = req.body;
-
-  if (!devoteeName || !phone || !date) {
-    return res.status(400).json({ error: "Missing required booking details (name, phone, date)" });
-  }
-
-  const bookingId = "SWX-" + Math.floor(100000 + Math.random() * 900000);
-  const bookingRecord = {
-    bookingId,
-    templeName,
-    sevaName,
-    devoteeName,
-    phone,
-    date,
-    numberOfDevotees: numberOfDevotees || 1,
-    totalAmount: totalAmount || 300,
-    specialWishes: specialWishes || "",
-    status: "CONFIRMED",
-    qrCodePlaceholder: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingId}`,
-    createdAt: new Date().toISOString()
+// Map PostgreSQL snake_case fields back to TypeScript camelCase interfaces
+function mapPackageFromDB(p: any): DevotionalPackage {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    highlights: p.highlights || [],
+    itinerary: p.itinerary || [],
+    duration: p.duration,
+    pricePerSeat: Number(p.price_per_seat),
+    image: p.image,
+    category: p.category,
+    inclusions: p.inclusions || [],
+    exclusions: p.exclusions || [],
+    availableDates: p.available_dates || [],
+    isActive: p.is_active,
+    createdAt: p.created_at,
+    addons: p.addons || []
   };
+}
 
-  userBookings.push(bookingRecord);
-  res.json({ success: true, booking: bookingRecord });
-});
-
-// Community Yatra Journals
-app.get("/api/journals", (req, res) => {
-  res.json({ journals: userJournals });
-});
-
-app.post("/api/journals", (req, res) => {
-  const { authorName, templeVisited, rating, title, content, tipsForPilgrims } = req.body;
-
-  if (!authorName || !title || !content) {
-    return res.status(400).json({ error: "Author name, title, and content are required." });
-  }
-
-  const newJournal = {
-    id: "journal-" + Date.now(),
-    authorName,
-    authorAvatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuA-0GIytrUgSEfQqv7_uA3VGBMB7gs-tFhCHM3JLSsr6Oc6A2SFwqULVggVGscMxoPeJ1jY6vFXXfGXpxas0hln5dtc16cW4wARjrOz4QAx9bwus394Favi5DfiJYzibAkGt_JzN1OFzFkzcf_sQyAb4a_uHrJ_gj3OOGdd2yu_p1pPDVZAOYpu5kMrSwF5rGBjS2mpEuiZWdEU23SJISCiZkZvqkIO_b9u2UCyUxllqnePQNJWCuw",
-    templeVisited: templeVisited || "Sacred Temple Yatra",
-    dateVisited: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    rating: Number(rating) || 5,
-    title,
-    content,
-    tipsForPilgrims: tipsForPilgrims || "",
-    images: [],
-    likesCount: 1
+function mapBookingFromDB(b: any): Booking {
+  return {
+    bookingId: b.booking_id,
+    uniqueCode: b.unique_code,
+    packageId: b.package_id,
+    packageName: b.package_name,
+    tourDateId: b.tour_date_id,
+    tourDate: b.tour_date,
+    userName: b.user_name,
+    userEmail: b.user_email,
+    userPhone: b.user_phone,
+    numberOfSeats: Number(b.number_of_seats),
+    totalAmount: Number(b.total_amount),
+    status: b.status,
+    qrCodeUrl: b.qr_code_url,
+    createdAt: b.created_at,
+    selectedAddons: b.selected_addons || []
   };
+}
 
-  userJournals.unshift(newJournal);
-  res.json({ success: true, journal: newJournal });
-});
+// ================= USER-FACING API ROUTES =================
 
-// AI Yatra Planner Endpoint
-app.post("/api/ai-plan-yatra", async (req, res) => {
-  const { startingCity, durationDays, preferredState, travelerType, specialRequirements } = req.body;
-
-  const ai = getGeminiClient();
-  if (!ai) {
-    // Fallback if API key is not present
-    return res.json({
-      title: `Personalized ${durationDays || 3}-Day Divine Yatra from ${startingCity || "Chennai"}`,
-      summary: `A carefully curated pilgrimage focusing on prominent temples in ${preferredState || "Tamil Nadu & Andhra Pradesh"}, optimized for ${travelerType || "family"} travel with minimal waiting time.`,
-      stops: MOCK_YATRA_STOPS,
-      auspiciousTimings: "Morning Suprabhatam (05:00 AM - 07:00 AM) and Evening Deeparadhana (06:30 PM - 08:00 PM) are recommended.",
-      travelTips: [
-        "Pre-book Special Entry e-tickets for Tirupati Balaji to save 3-4 hours.",
-        "Wear comfortable traditional cotton clothing.",
-        "Avail wheelchair and golf cart assistance for seniors at temple entrances."
-      ]
-    });
-  }
-
+// Get all active packages
+app.get("/api/packages", async (req, res) => {
   try {
-    const prompt = `You are Swaxthika Travel's AI Devotional Pilgrimage Advisor & Panchangam Master.
-Design a highly detailed, auspicious yatra (pilgrimage) itinerary based on:
-- Starting Location: ${startingCity || "Chennai"}
-- Duration: ${durationDays || 3} Days
-- Preferred Region/State: ${preferredState || "South India"}
-- Traveler Type: ${travelerType || "Family with seniors"}
-- Special Notes/Requests: ${specialRequirements || "None"}
+    const { data, error } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
 
-Respond strictly with valid JSON with the following structure:
-{
-  "title": "Short poetic title for the yatra",
-  "summary": "Inspiring 2-3 sentence overview of the spiritual journey",
-  "stops": [
-    {
-      "id": 1,
-      "name": "Temple Name",
-      "city": "City, State",
-      "description": "Spiritual significance and key highlight",
-      "recommendedDuration": "e.g., 1 Day / 3 Hours"
-    }
-  ],
-  "auspiciousTimings": "Panchangam guidance on best Brahma Muhurtham & Darshan timings",
-  "travelTips": ["Tip 1", "Tip 2", "Tip 3"]
-}`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    const parsed = JSON.parse(response.text || "{}");
-    res.json(parsed);
+    if (error) throw error;
+    res.json({ packages: (data || []).map(mapPackageFromDB) });
   } catch (err: any) {
-    console.error("Gemini Yatra Planner error:", err);
-    res.json({
-      title: `${durationDays || 3}-Day Sacred Yatra Itinerary`,
-      summary: `A blessed pilgrimage route designed for seamless temple darshans and serene travel.`,
-      stops: MOCK_YATRA_STOPS,
-      auspiciousTimings: "Brahma Muhurtham (04:30 AM - 06:00 AM) is most auspicious for peaceful darshan.",
-      travelTips: [
-        "Carry government photo IDs for sanctum verification.",
-        "Keep hydrated and follow temple dress code standards."
-      ]
-    });
+    console.error("Fetch packages error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// AI Sthala Purana Storyteller
-app.post("/api/ai-purana", async (req, res) => {
-  const { templeName } = req.body;
-  const ai = getGeminiClient();
+// Get package by ID
+app.get("/api/packages/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
 
-  if (!ai || !templeName) {
-    const defaultStory = MOCK_PURANA_STORIES.find((s) =>
-      s.templeName.toLowerCase().includes((templeName || "").toLowerCase())
-    ) || MOCK_PURANA_STORIES[0];
+    if (error) {
+      if (error.code === "PGRST116") {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      throw error;
+    }
+    res.json({ package: mapPackageFromDB(data) });
+  } catch (err: any) {
+    console.error("Fetch package error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    return res.json({ story: defaultStory });
+// Book a package (checks seats and writes to bookings)
+app.post("/api/book-package", async (req, res) => {
+  const { packageId, tourDateId, userName, userEmail, userPhone, numberOfSeats, totalAmount, selectedAddons } = req.body;
+
+  if (!packageId || !tourDateId || !userName || !userEmail || !userPhone || !numberOfSeats) {
+    return res.status(400).json({ error: "Missing required booking fields" });
   }
 
   try {
-    const prompt = `Narrate the authentic Sthala Purana (divine legend and history) for ${templeName}.
-Provide a deeply devotional, authentic, and inspiring narration including:
-1. Origin story and ancient legends from Puranic literature
-2. Significance of the deity and architecture
-3. Spiritual blessings received by pilgrims
+    // 1. Fetch package details to check seat availability
+    const { data: pkg, error: fetchErr } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("id", packageId)
+      .single();
 
-Format as JSON:
-{
-  "id": "story-ai",
-  "templeName": "${templeName}",
-  "title": "Poetic Title for Sthala Purana",
-  "summary": "2 sentence summary",
-  "fullStory": "Detailed 4-5 paragraph authentic Purana story",
-  "significance": "Key spiritual significance",
-  "associatedDeity": "Main Deity"
-}`;
+    if (fetchErr) {
+      if (fetchErr.code === "PGRST116") return res.status(404).json({ error: "Package not found" });
+      throw fetchErr;
+    }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
+    const dates = (pkg.available_dates || []) as TourDate[];
+    const dateIndex = dates.findIndex((d) => d.id === tourDateId);
+    if (dateIndex === -1) {
+      return res.status(404).json({ error: "Tour date not found" });
+    }
+
+    const tourDate = dates[dateIndex];
+    const numSeats = Number(numberOfSeats);
+    if (tourDate.bookedSeats + numSeats > tourDate.totalSeats) {
+      return res.status(400).json({ error: "Not enough seats available for this date" });
+    }
+
+    // 2. Update seat counts
+    tourDate.bookedSeats += numSeats;
+    if (tourDate.bookedSeats >= tourDate.totalSeats) {
+      tourDate.status = "sold-out";
+    } else if (tourDate.totalSeats - tourDate.bookedSeats <= 5) {
+      tourDate.status = "filling-fast";
+    } else {
+      tourDate.status = "available";
+    }
+
+    // Save back updated dates array
+    const { error: updatePkgErr } = await supabase
+      .from("packages")
+      .update({ available_dates: dates })
+      .eq("id", packageId);
+
+    if (updatePkgErr) throw updatePkgErr;
+
+    // 3. Create booking record
+    const bookingId = "SWX-" + Math.floor(100000 + Math.random() * 900000);
+    const uniqueCode = generateUniqueCode();
+
+    const newBooking = {
+      booking_id: bookingId,
+      unique_code: uniqueCode,
+      package_id: packageId,
+      package_name: pkg.name,
+      tour_date_id: tourDateId,
+      tour_date: tourDate.date,
+      user_name: userName,
+      user_email: userEmail,
+      user_phone: userPhone,
+      number_of_seats: numSeats,
+      total_amount: Number(totalAmount),
+      status: "Confirmed",
+      qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${bookingId}`,
+      selected_addons: selectedAddons || []
+    };
+
+    const { data: bookingData, error: insertErr } = await supabase
+      .from("bookings")
+      .insert([newBooking])
+      .select()
+      .single();
+
+    if (insertErr) throw insertErr;
+
+    res.json({ success: true, booking: mapBookingFromDB(bookingData) });
+  } catch (err: any) {
+    console.error("Booking error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ================= ADMIN CONSOLE API ROUTES =================
+
+// Admin Login authentication via Supabase Auth & role check in user_profiles
+app.post("/api/admin/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  try {
+    // 1. Try signing in with Supabase Auth
+    let userId = "";
+    let userEmail = "";
+    let userName = "";
+
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    const storyData = JSON.parse(response.text || "{}");
-    storyData.image = MOCK_PURANA_STORIES[0].image;
-    res.json({ story: storyData });
-  } catch (err) {
-    console.error("Gemini Purana error:", err);
-    res.json({ story: MOCK_PURANA_STORIES[0] });
+    if (!authError && authData.user) {
+      userId = authData.user.id;
+      userEmail = authData.user.email || email;
+    } else {
+      // Fallback: If auth fails, check if credentials match the master admin credentials and user exists in DB
+      if (email === "admin@swaxthika.com" && password === "swaxthika2026") {
+        const { data: dbAdmin, error: dbErr } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("email", email)
+          .single();
+
+        if (!dbErr && dbAdmin && dbAdmin.role === "admin") {
+          userId = dbAdmin.id;
+          userEmail = dbAdmin.email;
+          userName = dbAdmin.full_name;
+        } else {
+          return res.status(401).json({ error: authError ? authError.message : "Invalid credentials" });
+        }
+      } else {
+        return res.status(401).json({ error: authError ? authError.message : "Invalid credentials" });
+      }
+    }
+
+    // 2. Double check user_profiles to ensure this user has the 'admin' role
+    const { data: profile, error: profileErr } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("email", userEmail)
+      .single();
+
+    if (profileErr || !profile) {
+      return res.status(403).json({ error: "Unauthorized: User profile role could not be verified." });
+    }
+
+    if (profile.role !== "admin") {
+      return res.status(403).json({ error: "Access Denied: You do not have administrator privileges." });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: profile.id,
+        email: profile.email,
+        name: profile.full_name || userName || "Admin",
+        role: profile.role,
+      },
+    });
+  } catch (err: any) {
+    console.error("Admin login API error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Configure multer storage in memory
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Upload package cover image to Supabase bucket
+app.post("/api/admin/upload-image", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file provided" });
+  }
+
+  try {
+    const file = req.file;
+    const fileExt = path.extname(file.originalname) || ".jpg";
+    const fileName = `package-${Date.now()}${fileExt}`;
+
+    // 1. Try uploading to 'packages' bucket in Supabase storage
+    let { data, error } = await supabase.storage
+      .from("packages")
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
+
+    if (error) {
+      // If the bucket doesn't exist, try to create it and then re-upload
+      if (error.message.includes("not found") || error.message.includes("does not exist") || (error as any).status === 404) {
+        console.log("Bucket 'packages' not found. Attempting to create bucket...");
+        const { error: createBucketError } = await supabase.storage.createBucket("packages", {
+          public: true
+        });
+        if (createBucketError) {
+          throw new Error(`Failed to create packages storage bucket: ${createBucketError.message}`);
+        }
+        
+        // Retry upload
+        const retryResult = await supabase.storage
+          .from("packages")
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true
+          });
+        if (retryResult.error) throw retryResult.error;
+      } else {
+        throw error;
+      }
+    }
+
+    // 2. Get public URL
+    const { data: urlData } = supabase.storage
+      .from("packages")
+      .getPublicUrl(fileName);
+
+    res.json({ success: true, url: urlData.publicUrl });
+  } catch (err: any) {
+    console.error("Upload image error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all packages (including inactive)
+app.get("/api/admin/packages", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("packages")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json({ packages: (data || []).map(mapPackageFromDB) });
+  } catch (err: any) {
+    console.error("Admin fetch packages error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create new package
+app.post("/api/admin/packages", async (req, res) => {
+  const payload = {
+    id: "pkg-" + Date.now(),
+    name: req.body.name || "Untitled Package",
+    description: req.body.description || "",
+    highlights: req.body.highlights || [],
+    itinerary: req.body.itinerary || [],
+    duration: req.body.duration || "1 Day",
+    price_per_seat: Number(req.body.pricePerSeat) || 0,
+    image: req.body.image || "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80",
+    category: req.body.category || "General",
+    inclusions: req.body.inclusions || [],
+    exclusions: req.body.exclusions || [],
+    available_dates: req.body.availableDates || [],
+    is_active: req.body.isActive !== undefined ? req.body.isActive : true,
+    addons: req.body.addons || []
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("packages")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, package: mapPackageFromDB(data) });
+  } catch (err: any) {
+    console.error("Admin create package error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update package
+app.put("/api/admin/packages/:id", async (req, res) => {
+  const { id } = req.params;
+  const payload: any = {};
+  
+  if (req.body.name !== undefined) payload.name = req.body.name;
+  if (req.body.description !== undefined) payload.description = req.body.description;
+  if (req.body.duration !== undefined) payload.duration = req.body.duration;
+  if (req.body.pricePerSeat !== undefined) payload.price_per_seat = Number(req.body.pricePerSeat);
+  if (req.body.image !== undefined) payload.image = req.body.image;
+  if (req.body.category !== undefined) payload.category = req.body.category;
+  if (req.body.highlights !== undefined) payload.highlights = req.body.highlights;
+  if (req.body.inclusions !== undefined) payload.inclusions = req.body.inclusions;
+  if (req.body.exclusions !== undefined) payload.exclusions = req.body.exclusions;
+  if (req.body.availableDates !== undefined) payload.available_dates = req.body.availableDates;
+  if (req.body.isActive !== undefined) payload.is_active = req.body.isActive;
+  if (req.body.addons !== undefined) payload.addons = req.body.addons;
+
+  try {
+    const { data, error } = await supabase
+      .from("packages")
+      .update(payload)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, package: mapPackageFromDB(data) });
+  } catch (err: any) {
+    console.error("Admin update package error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete package
+app.delete("/api/admin/packages/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from("packages")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("Admin delete package error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add tour dates to package
+app.post("/api/admin/packages/:id/dates", async (req, res) => {
+  const { id } = req.params;
+  const { date, totalSeats } = req.body;
+
+  if (!date || !totalSeats) {
+    return res.status(400).json({ error: "Date and totalSeats are required" });
+  }
+
+  try {
+    const { data: pkg, error: fetchErr } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    const dates = (pkg.available_dates || []) as TourDate[];
+    const newDate: TourDate = {
+      id: "dt-" + Date.now(),
+      date,
+      totalSeats: Number(totalSeats),
+      bookedSeats: 0,
+      status: "available"
+    };
+    dates.push(newDate);
+
+    const { data: updatedPkg, error: updateErr } = await supabase
+      .from("packages")
+      .update({ available_dates: dates })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    res.json({ success: true, package: mapPackageFromDB(updatedPkg) });
+  } catch (err: any) {
+    console.error("Admin add date error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete tour date from package
+app.delete("/api/admin/packages/:packageId/dates/:dateId", async (req, res) => {
+  const { packageId, dateId } = req.params;
+  try {
+    const { data: pkg, error: fetchErr } = await supabase
+      .from("packages")
+      .select("*")
+      .eq("id", packageId)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    const dates = (pkg.available_dates || []) as TourDate[];
+    const dateIndex = dates.findIndex((d) => d.id === dateId);
+    if (dateIndex !== -1) {
+      dates.splice(dateIndex, 1);
+    }
+
+    const { data: updatedPkg, error: updateErr } = await supabase
+      .from("packages")
+      .update({ available_dates: dates })
+      .eq("id", packageId)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    res.json({ success: true, package: mapPackageFromDB(updatedPkg) });
+  } catch (err: any) {
+    console.error("Admin delete date error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all bookings
+app.get("/api/admin/bookings", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json({ bookings: (data || []).map(mapBookingFromDB) });
+  } catch (err: any) {
+    console.error("Admin fetch bookings error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify booking by code or ID
+app.post("/api/admin/verify-booking", async (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ error: "Verification code is required" });
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .or(`booking_id.eq.${code},unique_code.eq.${cleanCode}`);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      res.json({ success: true, booking: mapBookingFromDB(data[0]) });
+    } else {
+      res.status(404).json({ error: "No booking found with this code" });
+    }
+  } catch (err: any) {
+    console.error("Admin verify booking error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update booking status
+app.post("/api/admin/update-booking-status", async (req, res) => {
+  const { bookingId, status } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .update({ status })
+      .eq("booking_id", bookingId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, booking: mapBookingFromDB(data) });
+  } catch (err: any) {
+    console.error("Admin update booking status error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -337,7 +586,7 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
