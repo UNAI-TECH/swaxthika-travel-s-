@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle, Sparkles } from 'lucide-react';
 import { UserSession } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -11,23 +12,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSignInSuccess }
   const [loading, setLoading] = useState(false);
   const [signedInUser, setSignedInUser] = useState<UserSession | null>(null);
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    
-    // Simulate Google Sign-In redirect/popup response after 1.2s
-    setTimeout(() => {
-      const mockUser: UserSession = {
-        name: 'Sundararajan Swamy',
-        email: 'sundar.swamy@gmail.com',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        isLoggedIn: true
-      };
-      
-      localStorage.setItem('swaxthika_user_session', JSON.stringify(mockUser));
-      setSignedInUser(mockUser);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        alert("Google Sign-In Error: " + error.message);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to initialize Google login.");
       setLoading(false);
-      onSignInSuccess(mockUser);
-    }, 1200);
+    }
   };
 
   return (

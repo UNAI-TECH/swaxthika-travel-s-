@@ -11,6 +11,7 @@ import { StatsBar } from './components/StatsBar';
 import { AppFooter } from './components/AppFooter';
 import { DevotionalPackage, Booking, UserSession } from './types';
 import { ArrowRight } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
 // Real-time polling interval (10 seconds)
 const POLL_INTERVAL_MS = 10000;
@@ -39,17 +40,52 @@ export function App() {
   // Polling reference
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load user session on mount
+  // Load user session on mount and listen to realtime Auth changes
   useEffect(() => {
-    const session = localStorage.getItem('swaxthika_user_session');
-    if (session) {
-      try {
-        const parsed = JSON.parse(session);
-        setUser(parsed);
-      } catch (e) {
-        console.error(e);
+    // 1. Initial session load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        const userSession: UserSession = {
+          name: session.user.user_metadata.full_name || session.user.email || 'Devotee',
+          email: session.user.email || '',
+          avatar: session.user.user_metadata.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+          isLoggedIn: true
+        };
+        setUser(userSession);
+        localStorage.setItem('swaxthika_user_session', JSON.stringify(userSession));
+      } else {
+        // Fallback to localStorage for mock/admin user if no active Supabase Auth session
+        const localSession = localStorage.getItem('swaxthika_user_session');
+        if (localSession) {
+          try {
+            setUser(JSON.parse(localSession));
+          } catch (e) {
+            console.error(e);
+          }
+        }
       }
-    }
+    });
+
+    // 2. Real-time auth subscription
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && session.user) {
+        const userSession: UserSession = {
+          name: session.user.user_metadata.full_name || session.user.email || 'Devotee',
+          email: session.user.email || '',
+          avatar: session.user.user_metadata.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+          isLoggedIn: true
+        };
+        setUser(userSession);
+        localStorage.setItem('swaxthika_user_session', JSON.stringify(userSession));
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        localStorage.removeItem('swaxthika_user_session');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Fetch packages from server
@@ -136,7 +172,12 @@ export function App() {
     setShowAuthModal(false);
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
     localStorage.removeItem('swaxthika_user_session');
     setUser(null);
     setUserBookings([]);
