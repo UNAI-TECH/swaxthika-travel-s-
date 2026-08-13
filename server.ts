@@ -618,6 +618,11 @@ async function startServer() {
   }
 }
 
-startServer();
+// Only start the full server (Vite dev middleware / static file serving / listen)
+// when running as a standalone process. On Vercel, the Express app is used
+// directly as a serverless function handler via api/index.ts.
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
