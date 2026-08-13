@@ -144,14 +144,48 @@ export function App() {
     fetchUserBookings();
   }, [fetchUserBookings]);
 
-  // Real-time polling: refresh packages and bookings every POLL_INTERVAL_MS
+  // Subscribe to real-time changes from Supabase database
+  useEffect(() => {
+    // 1. Listen to packages changes
+    const packagesChannel = supabase
+      .channel('realtime-packages')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'packages' },
+        (payload) => {
+          console.log('Realtime package change received:', payload);
+          fetchPackages();
+        }
+      )
+      .subscribe();
+
+    // 2. Listen to bookings changes
+    const bookingsChannel = supabase
+      .channel('realtime-bookings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          console.log('Realtime booking change received:', payload);
+          fetchUserBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(packagesChannel);
+      supabase.removeChannel(bookingsChannel);
+    };
+  }, [fetchPackages, fetchUserBookings]);
+
+  // Fallback polling: refresh packages and bookings every 30 seconds
   useEffect(() => {
     pollTimerRef.current = setInterval(() => {
       fetchPackages();
       if (user && user.isLoggedIn) {
         fetchUserBookings();
       }
-    }, POLL_INTERVAL_MS);
+    }, 30000);
 
     return () => {
       if (pollTimerRef.current) {
