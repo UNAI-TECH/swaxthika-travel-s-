@@ -577,7 +577,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   const currentSelectedPkgForDates = packages.find(p => p.id === selectedPackageIdForDates);
 
   return (
-    <div className="min-h-screen bg-[#fcf8f5] text-gray-850">
+    <div className="min-h-screen bg-[#fcf8f5] text-gray-850 pb-safe pt-safe pl-safe pr-safe">
       {/* Admin Navbar */}
       <header className="bg-[#420a06] text-white border-b border-[#c5a059]/40 sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
@@ -642,10 +642,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
       {/* Admin Tabs Panel */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="bg-white rounded-2xl p-1.5 border border-gray-200/80 shadow-xs flex flex-wrap items-center gap-1.5">
+        <div className="bg-white rounded-2xl p-1.5 border border-gray-200/80 shadow-xs flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scroll-smooth select-none min-w-0 pr-4 sm:pr-0 scrollbar-none">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'overview' ? 'bg-[#5d100a] text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -655,7 +655,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
           <button
             onClick={() => setActiveTab('packages')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'packages' ? 'bg-[#5d100a] text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -665,7 +665,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
           <button
             onClick={() => setActiveTab('dates')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'dates' ? 'bg-[#5d100a] text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -675,7 +675,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
           <button
             onClick={() => setActiveTab('bookings')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'bookings' ? 'bg-[#5d100a] text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -690,7 +690,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
               setVerificationError(null);
               setVerificationCode('');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 bg-amber-50 hover:bg-amber-100 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 bg-amber-50 hover:bg-amber-100 ${
               activeTab === 'verify' ? 'bg-[#5d100a] text-white shadow-md' : 'text-amber-800'
             }`}
           >

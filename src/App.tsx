@@ -265,7 +265,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fff8f5] text-[#534341] flex flex-col font-sans transition-all">
+    <div className="min-h-screen bg-[#fff8f5] text-[#534341] flex flex-col font-sans transition-all pb-safe pt-safe pl-safe pr-safe">
       {/* Header — no admin button, admin only via URL */}
       <Header
         activeTab={activeTab}
