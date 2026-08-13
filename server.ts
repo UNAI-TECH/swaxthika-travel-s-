@@ -597,7 +597,9 @@ app.post("/api/admin/update-booking-status", async (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
+    // Use a variable to prevent Vercel's bundler from statically analyzing and bundling Vite
+    const viteModule = "vite";
+    const { createServer: createViteServer } = await import(viteModule);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
