@@ -94,15 +94,8 @@ export const AppFooter: React.FC<AppFooterProps> = ({ onNavClick }) => {
           </nav>
         </div>
 
-        {/* Sanskrit Shloka */}
-        <div className="mt-8 text-center space-y-2">
-          <h2 className="text-[#c5a059] font-serif text-3xl italic tracking-wide">
-            यत्र धर्म: तत्र जय:
-          </h2>
-          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-            Where there is Dharma, there is Victory.
-          </p>
-          <p className="text-white/30 text-[10px] pt-4">
+        <div className="mt-8 text-center">
+          <p className="text-white/30 text-[10px]">
             © 2026 Swaxthika Travel. All Rights Reserved. Devotional Tour & Pilgrimage Services.
           </p>
         </div>
