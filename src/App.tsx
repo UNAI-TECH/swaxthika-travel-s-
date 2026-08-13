@@ -209,6 +209,14 @@ export function App() {
     if (window.location.pathname !== targetPath) {
       window.history.pushState({}, '', targetPath);
     }
+    
+    // Fetch fresh data immediately when visiting the page tab
+    if (tab === 'packages' || tab === 'home') {
+      fetchPackages();
+    } else if (tab === 'my-bookings') {
+      fetchUserBookings();
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

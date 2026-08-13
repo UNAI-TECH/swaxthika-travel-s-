@@ -21,6 +21,7 @@ import {
   User
 } from 'lucide-react';
 import { DevotionalPackage, Booking, TourDate, PackageAddon } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AdminDashboardProps {
   onExitAdmin: () => void;
@@ -159,10 +160,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchPackages();
-      fetchBookings();
-    }
+    if (!isAuthenticated) return;
+
+    fetchPackages();
+    fetchBookings();
+
+    // Subscribe to real-time changes
+    const packagesChannel = supabase
+      .channel('admin-realtime-packages')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'packages' },
+        (payload) => {
+          console.log('Admin realtime package change received:', payload);
+          fetchPackages();
+        }
+      )
+      .subscribe();
+
+    const bookingsChannel = supabase
+      .channel('admin-realtime-bookings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          console.log('Admin realtime booking change received:', payload);
+          fetchBookings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(packagesChannel);
+      supabase.removeChannel(bookingsChannel);
+    };
   }, [isAuthenticated]);
 
   // Set form fields for Editing
