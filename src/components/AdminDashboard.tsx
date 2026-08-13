@@ -153,6 +153,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
       .catch((e) => console.error(e));
   };
 
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeedData = () => {
+    setSeeding(true);
+    fetch('/api/admin/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          triggerNotification(res.message);
+          fetchPackages();
+          fetchBookings();
+        } else {
+          alert(res.error || 'Failed to seed database.');
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Connection error. Failed to reach seed API.');
+      })
+      .finally(() => setSeeding(false));
+  };
+
   const syncData = () => {
     fetchPackages();
     fetchBookings();
@@ -577,6 +602,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
           </div>
 
           <div className="flex items-center gap-3">
+            {packages.length === 0 && (
+              <button
+                onClick={handleSeedData}
+                disabled={seeding}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-[#fff]" />
+                <span>{seeding ? 'Seeding...' : 'Seed Default Data'}</span>
+              </button>
+            )}
+
             <button
               onClick={syncData}
               className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"

@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import multer from "multer";
 import { DevotionalPackage, Booking, TourDate } from "./src/types";
+import { MOCK_PACKAGES, MOCK_BOOKINGS } from "./src/data/mockData";
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +16,7 @@ app.use(express.json());
 
 // Initialize Supabase Client with fallbacks matching frontend config
 const supabaseUrl = process.env.SUPABASE_URL || "https://mduklqhzuxuopyxjbmsg.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTgzNjU2MywiZXhwIjoyMTAxNDEyNTYzfQ.wN7xZjrlmXSZ67bj3K8Rx-E8gPxu51y_iidU2bNo7TA";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTgzNjU2MywiZXhwIjoyMTAxNDEyNTYzfQ.wN7xZjrlmXSZ67bj3K8Rx-E8gPxu51y_iidU2bNo7TA";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 try {
@@ -589,6 +590,69 @@ app.post("/api/admin/update-booking-status", async (req, res) => {
     res.json({ success: true, booking: mapBookingFromDB(data) });
   } catch (err: any) {
     console.error("Admin update booking status error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Seed packages and bookings database
+app.post("/api/admin/seed", async (req, res) => {
+  try {
+    // 1. Fetch current packages count to check if seeding is needed
+    const { count, error: countErr } = await supabase
+      .from("packages")
+      .select("*", { count: "exact", head: true });
+
+    if (countErr) throw countErr;
+
+    if (count && count > 0) {
+      return res.status(400).json({ error: "Database already has packages. Seeding aborted." });
+    }
+
+    // 2. Map and insert mock packages
+    const dbPackages = MOCK_PACKAGES.map((pkg) => ({
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
+      duration: pkg.duration,
+      price_per_seat: pkg.pricePerSeat,
+      image: pkg.image,
+      category: pkg.category,
+      highlights: pkg.highlights,
+      inclusions: pkg.inclusions,
+      exclusions: pkg.exclusions,
+      available_dates: pkg.availableDates,
+      is_active: pkg.isActive,
+      addons: pkg.addons || [],
+      created_at: pkg.createdAt,
+    }));
+
+    const { error: pkgErr } = await supabase.from("packages").insert(dbPackages);
+    if (pkgErr) throw pkgErr;
+
+    // 3. Map and insert mock bookings
+    const dbBookings = MOCK_BOOKINGS.map((b) => ({
+      booking_id: b.bookingId,
+      unique_code: b.uniqueCode,
+      package_id: b.packageId,
+      package_name: b.packageName,
+      tour_date_id: b.tourDateId,
+      tour_date: b.tourDate,
+      user_name: b.userName,
+      user_email: b.userEmail,
+      user_phone: b.userPhone,
+      number_of_seats: b.numberOfSeats,
+      total_amount: b.totalAmount,
+      status: b.status,
+      qr_code_url: b.qrCodeUrl,
+      created_at: b.createdAt,
+    }));
+
+    const { error: bookingErr } = await supabase.from("bookings").insert(dbBookings);
+    if (bookingErr) throw bookingErr;
+
+    res.json({ success: true, message: "Successfully seeded packages and bookings." });
+  } catch (err: any) {
+    console.error("Seeding error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
