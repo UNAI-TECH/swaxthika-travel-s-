@@ -18,7 +18,7 @@ app.use(express.json());
 const supabaseUrl = process.env.SUPABASE_URL || "https://mduklqhzuxuopyxjbmsg.supabase.co";
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTgzNjU2MywiZXhwIjoyMTAxNDEyNTYzfQ.wN7xZjrlmXSZ67bj3K8Rx-E8gPxu51y_iidU2bNo7TA";
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabase: any = null;
 try {
   if (supabaseUrl && supabaseKey && !supabaseUrl.includes("your-project-id")) {
     supabase = createClient(supabaseUrl, supabaseKey);
