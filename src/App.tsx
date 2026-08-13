@@ -178,14 +178,14 @@ export function App() {
     };
   }, [fetchPackages, fetchUserBookings]);
 
-  // Fallback polling: refresh packages and bookings every 30 seconds
+  // Fallback polling: refresh packages and bookings every 5 seconds
   useEffect(() => {
     pollTimerRef.current = setInterval(() => {
       fetchPackages();
       if (user && user.isLoggedIn) {
         fetchUserBookings();
       }
-    }, 30000);
+    }, 5000);
 
     return () => {
       if (pollTimerRef.current) {

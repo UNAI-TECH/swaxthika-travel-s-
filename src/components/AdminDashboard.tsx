@@ -215,7 +215,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
       )
       .subscribe();
 
+    const interval = setInterval(() => {
+      fetchPackages();
+      fetchBookings();
+    }, 5000);
+
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(packagesChannel);
       supabase.removeChannel(bookingsChannel);
     };
@@ -580,33 +586,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
     <div className="min-h-screen bg-[#fcf8f5] text-gray-850 pb-safe pt-safe pl-safe pr-safe">
       {/* Admin Navbar */}
       <header className="bg-[#420a06] text-white border-b border-[#c5a059]/40 sticky top-0 z-40 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c5a059] to-[#8c6b2d] flex items-center justify-center shadow-md">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <img 
+              src="/swaxthika-logo.jpg" 
+              alt="Swaxthika Travel" 
+              className="w-10 h-10 rounded-xl object-cover shadow-md border border-[#c5a059]/40 shrink-0" 
+            />
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-serif font-bold text-lg text-white tracking-wide">
-                  SWAXTHIKA <span className="text-[#c5a059] font-sans font-normal text-xs uppercase tracking-widest ml-1">ADMIN CONSOLE</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-serif font-bold text-base sm:text-lg text-white tracking-wide">
+                  SWAXTHIKA <span className="text-[#c5a059] font-sans font-normal text-[10px] sm:text-xs uppercase tracking-widest ml-1">ADMIN CONSOLE</span>
                 </h1>
-                <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[8px] sm:text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   Active Console
                 </span>
               </div>
-              <p className="text-[11px] text-amber-200/80">
+              <p className="text-[10px] sm:text-[11px] text-amber-200/80 mt-0.5 leading-snug">
                 Manage packages, departure tour dates, and check-in verified devotee codes
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 justify-start md:justify-end">
             {packages.length === 0 && (
               <button
                 onClick={handleSeedData}
                 disabled={seeding}
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0"
               >
                 <PlusCircle className="w-3.5 h-3.5 text-[#fff]" />
                 <span>{seeding ? 'Seeding...' : 'Seed Default Data'}</span>
@@ -615,7 +623,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
             <button
               onClick={syncData}
-              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/10"
+              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border border-white/10 shrink-0"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Sync</span>
@@ -623,7 +631,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExitAdmin }) =
 
             <button
               onClick={handleAdminLogout}
-              className="bg-[#c5a059] hover:bg-[#b08c46] text-[#420a06] font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              className="bg-[#c5a059] hover:bg-[#b08c46] text-[#420a06] font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Lock Console</span>
