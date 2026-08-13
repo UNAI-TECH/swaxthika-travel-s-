@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import multer from "multer";
@@ -14,18 +13,32 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Initialize Supabase Client
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+// Initialize Supabase Client with fallbacks matching frontend config
+const supabaseUrl = process.env.SUPABASE_URL || "https://mduklqhzuxuopyxjbmsg.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MzY1NjMsImV4cCI6MjEwMTQxMjU2M30.s7UqRWfDZspZWIKQYWG_V3sJvErbFl-8N__lqmM0VnI";
 
-if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("your-project-id")) {
-  console.warn("====================================================================");
-  console.warn("⚠️  WARNING: Supabase URL/Key is not configured or is a placeholder.");
-  console.warn("Please update your .env file with real credentials for cloud database.");
-  console.warn("====================================================================");
+let supabase: ReturnType<typeof createClient> | null = null;
+try {
+  if (supabaseUrl && supabaseKey && !supabaseUrl.includes("your-project-id")) {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  } else {
+    console.warn("====================================================================");
+    console.warn("⚠️  WARNING: Supabase URL/Key is not configured or is a placeholder.");
+    console.warn("====================================================================");
+  }
+} catch (err: any) {
+  console.error("Failed to initialize Supabase client:", err.message);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Middleware to ensure Supabase client is initialized
+app.use("/api", (req, res, next) => {
+  if (!supabase) {
+    return res.status(500).json({
+      error: "Supabase client is not initialized. Please verify SUPABASE_URL and SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY environment variables."
+    });
+  }
+  next();
+});
 
 // Helpers to generate a random 6-character unique code
 function generateUniqueCode(): string {
@@ -584,6 +597,7 @@ app.post("/api/admin/update-booking-status", async (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
