@@ -16,10 +16,30 @@ import { supabase } from './lib/supabase';
 // Real-time polling interval (10 seconds)
 const POLL_INTERVAL_MS = 10000;
 
+// Map URL pathname to internal tab ID
+function pathnameToTab(pathname: string): string {
+  switch (pathname) {
+    case '/packages': return 'packages';
+    case '/my-bookings': return 'my-bookings';
+    case '/admin': return 'admin';
+    default: return 'home';
+  }
+}
+
+// Map internal tab ID to URL pathname
+function tabToPathname(tab: string): string {
+  switch (tab) {
+    case 'packages': return '/packages';
+    case 'my-bookings': return '/my-bookings';
+    case 'admin': return '/admin';
+    default: return '/';
+  }
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/admin') {
-      return 'admin';
+    if (typeof window !== 'undefined') {
+      return pathnameToTab(window.location.pathname);
     }
     return 'home';
   });
@@ -140,14 +160,10 @@ export function App() {
     };
   }, [fetchPackages, fetchUserBookings, user]);
 
-  // Handle URL change for admin (only accessible via /admin URL)
+  // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname === '/admin') {
-        setActiveTab('admin');
-      } else {
-        setActiveTab('home');
-      }
+      setActiveTab(pathnameToTab(window.location.pathname));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -155,14 +171,9 @@ export function App() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    if (tab === 'admin') {
-      if (window.location.pathname !== '/admin') {
-        window.history.pushState({}, '', '/admin');
-      }
-    } else {
-      if (window.location.pathname === '/admin') {
-        window.history.pushState({}, '', '/');
-      }
+    const targetPath = tabToPathname(tab);
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
