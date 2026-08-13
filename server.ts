@@ -15,7 +15,7 @@ app.use(express.json());
 
 // Initialize Supabase Client with fallbacks matching frontend config
 const supabaseUrl = process.env.SUPABASE_URL || "https://mduklqhzuxuopyxjbmsg.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MzY1NjMsImV4cCI6MjEwMTQxMjU2M30.s7UqRWfDZspZWIKQYWG_V3sJvErbFl-8N__lqmM0VnI";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kdWtscWh6dXh1b3B5eGpibXNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTgzNjU2MywiZXhwIjoyMTAxNDEyNTYzfQ.wN7xZjrlmXSZ67bj3K8Rx-E8gPxu51y_iidU2bNo7TA";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 try {
