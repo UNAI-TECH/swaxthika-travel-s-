@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import multer from "multer";
 import { DevotionalPackage, Booking, TourDate } from "./src/types";
-import { MOCK_PACKAGES, MOCK_BOOKINGS } from "./src/data/mockData";
+import { MOCK_PACKAGES, MOCK_BOOKINGS } from "./src/data/mockData.js";
 
 // Load environment variables
 dotenv.config();
